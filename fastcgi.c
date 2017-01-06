@@ -71,6 +71,7 @@ int		 fastcgi_add_fcgi_record(struct myconnect *, int,
 		    const void *, int);
 int		 fastcgi_add_fcgi_multirecord(struct myconnect *, int,
 		    const char *, int, const char *, int);
+static int	 substr_eq(const char *, int, const char *);
 
 __dead void
 usage(void)
@@ -571,7 +572,7 @@ fastcgi_header(struct myconnect *c, const char *name, const char *value)
 #ifdef check
 #undef check
 #endif
-#define check(s)	(len == sizeof(s)-1 && !strncmp(s, item, len))
+#define check(s)	substr_eq(item, len, s)
 
 	if (strcmp(name, "PATH_INFO") == 0) {
 		const char *item = value;
@@ -891,3 +892,14 @@ fastcgi_add_fcgi_multirecord(struct myconnect *c, int type,
 	}
 	return res;
 }
+
+static int
+substr_eq(const char *s1, int len1, const char *s2)
+{
+	int		 i;
+	for (i = 0; i < len1; ++i)
+		if (s1[i] != s2[i])
+			return 0;
+	return s2[len1] ? 0 : 1;
+}
+

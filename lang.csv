@@ -1,6 +1,7 @@
 en,fa
 ltr,rtl
 ",",،
+:,:
 .,.
 !,!
 ?,؟
@@ -8,7 +9,10 @@ ltr,rtl
 Ali Farzan rad,علی فرزان راد
 Ali Farzanrad,علی فرزان‌راد
 but there is a problem in displaying results,ولی مشکلی در نمایش اطلاعات پیش آمده است
+Content List,فهرست محتوا
 Error,خطا
+Not Found,یافت نشد
 Please compress uploading files and try again,لطفا حجم فایل‌های ارسالی را کاهش داده و دوباره تلاش کنید
+Requested resource not found,صفحه مورد نظر یافت نشد
 Your request completed,درخواست شما انجام شد
 Your request is too big,اطلاعات ارسالی شما بسیار بزرگ است

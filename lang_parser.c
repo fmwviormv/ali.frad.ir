@@ -169,6 +169,8 @@ main(int argc, char **argv)
 	col = separate(SEPARATOR);
 	print_string_array(mode, "lang_comma", "", col);
 	col = separate(SEPARATOR);
+	print_string_array(mode, "lang_colon", "", col);
+	col = separate(SEPARATOR);
 	print_string_array(mode, "lang_period", "", col);
 	col = separate(SEPARATOR);
 	print_string_array(mode, "lang_excla", "", col);

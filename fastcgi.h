@@ -124,7 +124,8 @@ struct myglobal {
 	struct myconnect *connect;
 };
 
-#define cgi_minify(t, r)	cgi_minify2(t, r, sizeof(r))
+#define cgi_binary(t, r)	cgi_binary2(t, r, sizeof(r))
+#define cgi_base64(t, r)	cgi_base64_2(t, r, sizeof(r))
 #define cgi_image(t, r)		cgi_image2(t, r, sizeof(r))
 
 const char	*fastcgi_param(struct mythread *, const char *);
@@ -139,7 +140,8 @@ void		 cgi_html_begin(struct mythread *, const char *,
 void		 cgi_html_head(struct mythread *);
 void		 cgi_html_tail(struct mythread *);
 void		 cgi_notfound(struct mythread *);
-void		 cgi_minify2(struct mythread *, const void *, int);
+void		 cgi_binary2(struct mythread *, const void *, int);
+void		 cgi_base64_2(struct mythread *, const void *, int);
 void		 cgi_image2(struct mythread *, const void *, int);
 void		 www(struct mythread *, const char *);
 void		 www_os(struct mythread *, const char *);

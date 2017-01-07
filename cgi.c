@@ -1,6 +1,7 @@
+#include <stdarg.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include <stdarg.h>
 
 #include "fastcgi.h"
 #include "lang.h"
@@ -76,14 +77,16 @@ cgi_html_begin(struct mythread *t, const char *title_fmt,
 	va_start(ap, desc_fmt);
 	if (title_fmt) {
 		fastcgi_addbody(t, "<title>");
-		t->body_len += vsnprintf(t->body + t->body_len,
-		    sizeof(t->body) - t->body_len, title_fmt, ap);
+		if (t->body_len >= 0)
+			t->body_len += vsnprintf(t->body + t->body_len,
+			    sizeof(t->body) - t->body_len, title_fmt, ap);
 		fastcgi_addbody(t, "</title>");
 	}
 	if (desc_fmt) {
 		fastcgi_addbody(t, "<meta name=\"description\" content=\"");
-		t->body_len += vsnprintf(t->body + t->body_len,
-		    sizeof(t->body) - t->body_len, title_fmt, ap);
+		if (t->body_len >= 0)
+			t->body_len += vsnprintf(t->body + t->body_len,
+			    sizeof(t->body) - t->body_len, title_fmt, ap);
 		fastcgi_addbody(t, "\">");
 	}
 	va_end(ap);
@@ -104,12 +107,74 @@ cgi_html_tail(struct mythread *t)
 }
 
 void
-cgi_minify2(struct mythread *t, const void *data, int len)
+cgi_binary2(struct mythread *t, const void *data, int len)
 {
+	int		 safe_len;
+	if (t->body_len < 0)
+		return;
+	if (t->body_len + len < (int)sizeof(t->body))
+		safe_len = len;
+	else
+		safe_len = (int)sizeof(t->body) - t->body_len - 1;
+	memcpy(t->body + t->body_len, data, safe_len);
+	if (safe_len == len) {
+		t->body_len += len;
+		t->body[t->body_len] = 0;
+	} else
+		t->body_len = -1;
+}
+
+void
+cgi_base64_2(struct mythread *t, const void *data, int len)
+{
+	static const char base64[64] =
+	    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	    "abcdefghijklmnopqrstuvwxyz"
+	    "0123456789" "+/";
+	int		 i, value, bits;
+	char		*p, *end;
+	if (t->body_len < 0)
+		return;
+	p = t->body + t->body_len;
+	end = t->body + sizeof(t->body) - 1;
+	value = bits = 0;
+	for (i = 0; i < len; ++i) {
+		int byte = ((const unsigned char *)data)[i];
+		value += byte >> (bits += 2);
+		if (p >= end) {
+			t->body_len = -1;
+			return;
+		}
+		*p++ = base64[value & 63];
+		value = byte << (6 - bits);
+		if (bits < 6)
+			continue;
+		if (p >= end) {
+			t->body_len = -1;
+			return;
+		}
+		*p++ = base64[value & 63];
+		value = bits = 0;
+	}
+	*p = 0;
+	t->body_len = p - t->body;
+	if (bits > 0) {
+		fastcgi_addbody(t, "%c%s",
+		    base64[value & 63],
+		    bits == 2 ? "==" : "=");
+	}
 }
 
 void
 cgi_image2(struct mythread *t, const void *data, int len)
 {
+	const unsigned char	*udata = data;
+	uint32_t		 magic = 0;
+	if (len >= 0)
+		magic = (udata[0] << 24) + (udata[1] << 16) +
+		    (udata[2] << 8) + udata[3];
+	fastcgi_addbody(t, "data:%s;base64,",
+	    magic == MAGIC_PNG ? "image/png" : "image/jpeg");
+	cgi_base64_2(t, data, len);
 }
 

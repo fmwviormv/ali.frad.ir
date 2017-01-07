@@ -5,7 +5,7 @@
 #include "fastcgi.h"
 #include "lang.h"
 
-void		 cgi_root(struct mythread *);
+static void	 cgi_root(struct mythread *);
 
 void
 cgi_main(struct mythread *t, struct myconnect *c)
@@ -38,7 +38,7 @@ cgi_path(const char **path, const char *s)
 	return 1;
 }
 
-void
+static void
 cgi_root(struct mythread *t)
 {
 }

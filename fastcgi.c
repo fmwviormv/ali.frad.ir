@@ -49,31 +49,31 @@ struct fcgi_end_request_body {
 	uint8_t		reserved[3];
 }__packed;
 
-__dead void	 usage(void);
-int		 atoi_or_die(const char *, int, int);
-int		 fastcgi_listen(const char *, struct passwd *, int);
-void		 fastcgi_accept(int, short, void *);
-void		 fastcgi_resume(int, short, void *);
-void		 fastcgi_sig_handler(int, short, void *);
-void		 fastcgi_close(struct myconnect *);
-void		 fastcgi_read(int, short, void *);
-void		 fastcgi_write(int, short, void *);
-void		 fastcgi_timeout(int, short, void *);
-void		*fastcgi_worker(void *);
-void		 fastcgi_addjob(struct myconnect *);
-void		 fastcgi_header(struct myconnect *,
+static __dead void usage(void);
+static int	 atoi_or_die(const char *, int, int);
+static int	 fastcgi_listen(const char *, struct passwd *, int);
+static void	 fastcgi_accept(int, short, void *);
+static void	 fastcgi_resume(int, short, void *);
+static void	 fastcgi_sig_handler(int, short, void *);
+static void	 fastcgi_close(struct myconnect *);
+static void	 fastcgi_read(int, short, void *);
+static void	 fastcgi_write(int, short, void *);
+static void	 fastcgi_timeout(int, short, void *);
+static void	*fastcgi_worker(void *);
+static void	 fastcgi_addjob(struct myconnect *);
+static void	 fastcgi_header(struct myconnect *,
 		    const char *, const char *);
-void		 fastcgi_end_internal(struct myconnect *, const char *,
+static void	 fastcgi_end_internal(struct myconnect *, const char *,
 		    const char *, const char *, ...);
-void		 fastcgi_end_bigreq(struct myconnect *, const char *);
-void		 fastcgi_end_bigres(struct myconnect *, const char *);
-int		 fastcgi_add_fcgi_record(struct myconnect *, int,
+static void	 fastcgi_end_bigreq(struct myconnect *, const char *);
+static void	 fastcgi_end_bigres(struct myconnect *, const char *);
+static int	 fastcgi_add_fcgi_record(struct myconnect *, int,
 		    const void *, int);
-int		 fastcgi_add_fcgi_multirecord(struct myconnect *, int,
+static int	 fastcgi_add_fcgi_multirecord(struct myconnect *, int,
 		    const char *, int, const char *, int);
 static int	 substr_eq(const char *, int, const char *);
 
-__dead void
+static __dead void
 usage(void)
 {
 	extern char *__progname;
@@ -82,7 +82,7 @@ usage(void)
 	exit(1);
 }
 
-int
+static int
 atoi_or_die(const char *s, int min, int max)
 {
 	const char	*msg;
@@ -220,7 +220,7 @@ main(int argc, char **argv)
 	return 0;
 }
 
-int
+static int
 fastcgi_listen(const char *path, struct passwd *pw, int max_queue)
 {
 	struct sockaddr_un	 sun;
@@ -244,7 +244,7 @@ fastcgi_listen(const char *path, struct passwd *pw, int max_queue)
 	return fd;
 }
 
-void
+static void
 fastcgi_accept(int fd, short events, void *arg)
 {
 	struct myglobal		*g = arg;
@@ -297,14 +297,14 @@ fastcgi_accept(int fd, short events, void *arg)
 	event_add(&c->ev_timeout, &timeout);
 }
 
-void
+static void
 fastcgi_resume(int fd, short events, void *arg)
 {
 	struct myglobal	*g = arg;
 	event_add(&g->ev_accept, NULL);
 }
 
-void
+static void
 fastcgi_sig_handler(int sig, short event, void *arg)
 {
 	struct myglobal	*g = arg;
@@ -330,7 +330,7 @@ fastcgi_sig_handler(int sig, short event, void *arg)
 	}
 }
 
-void
+static void
 fastcgi_close(struct myconnect *c)
 {
 	struct myglobal	*g = c->g;
@@ -349,7 +349,7 @@ fastcgi_close(struct myconnect *c)
 	--g->num_connect;
 }
 
-void
+static void
 fastcgi_read(int fd, short event, void *arg)
 {
 	struct myconnect	*c = arg;
@@ -453,7 +453,7 @@ fastcgi_read(int fd, short event, void *arg)
 	c->in_pos = 0;
 }
 
-void
+static void
 fastcgi_write(int fd, short event, void *arg)
 {
 	struct myconnect	*c = arg;
@@ -472,14 +472,14 @@ fastcgi_write(int fd, short event, void *arg)
 		fastcgi_close(c);
 }
 
-void
+static void
 fastcgi_timeout(int fd, short event, void *arg)
 {
 	struct myconnect	*c = arg;
 	fastcgi_close(c);
 }
 
-void *
+static void *
 fastcgi_worker(void *arg)
 {
 	struct mythread		*t = arg;
@@ -534,7 +534,7 @@ fastcgi_worker(void *arg)
 	return NULL;
 }
 
-void
+static void
 fastcgi_addjob(struct myconnect *c)
 {
 	struct myglobal	*g = c->g;
@@ -566,7 +566,7 @@ fastcgi_param(struct mythread *t, const char *key)
 	return NULL;
 }
 
-void
+static void
 fastcgi_header(struct myconnect *c, const char *name, const char *value)
 {
 #ifdef check
@@ -734,7 +734,7 @@ fastcgi_end(struct mythread *t, struct myconnect *c)
 	fastcgi_add_fcgi_record(c, FCGI_END_REQUEST, NULL, 0);
 }
 
-void
+static void
 fastcgi_end_internal(struct myconnect *c, const char *log,
     const char *adding_log, const char *fmt, ...)
 {
@@ -775,7 +775,7 @@ fastcgi_end_internal(struct myconnect *c, const char *log,
 	fastcgi_add_fcgi_record(c, FCGI_END_REQUEST, NULL, 0);
 }
 
-void
+static void
 fastcgi_end_bigreq(struct myconnect *c, const char *log)
 {
 	int		 L = c->lang;
@@ -787,7 +787,7 @@ fastcgi_end_bigreq(struct myconnect *c, const char *log)
 	    lang_period[L]);
 }
 
-void
+static void
 fastcgi_end_bigres(struct myconnect *c, const char *log)
 {
 	int		 L = c->lang;
@@ -798,7 +798,7 @@ fastcgi_end_bigres(struct myconnect *c, const char *log)
 	    lang_period[L]);
 }
 
-int
+static int
 fastcgi_add_fcgi_record(struct myconnect *c, int type,
     const void *content, int content_len)
 {
@@ -843,7 +843,7 @@ fastcgi_add_fcgi_record(struct myconnect *c, int type,
 	return content_len;
 }
 
-int
+static int
 fastcgi_add_fcgi_multirecord(struct myconnect *c, int type,
     const char *content1, int len1, const char *content2, int len2)
 {

@@ -31,7 +31,7 @@ quote(const char *str)
 	putchar('"');
 	for (i = 0; str[i]; ++i) {
 		int ch = (unsigned char)str[i];
-		if (ch == '"')
+		if (ch == '"' || ch == '\\')
 			putchar('\\');
 		if (ch < ' ' || ch >= 127)
 			printf("\\%03o", ch);
@@ -52,7 +52,7 @@ quote_nonempty_file(const char *path)
 		printf("\n\t\"");
 		for (i = 0; i < nbuf; ++i) {
 			int ch = (unsigned char)buf[i];
-			if (ch == '"' || ch < 32 || ch >= 127)
+			if (ch == '"' || ch == '\\' || ch < 32 || ch >= 127)
 				putchar('\\'); // must quote
 
 			if (ch == '\t')

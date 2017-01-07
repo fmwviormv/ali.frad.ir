@@ -1,21 +1,29 @@
+#include <string.h>
+
 #include "fastcgi.h"
 #include "lang.h"
+
+static void	 process(struct mythread *);
 
 void
 www(struct mythread *t, const char *path)
 {
+	if (cgi_path(&path, "os"))
+		www_os(t, path);
+	else if (cgi_path(&path, "games"))
+		www_games(t, path);
+	else if (cgi_path(&path, "utils"))
+		www_utils(t, path);
+	else if (strcmp(path, "") == 0)
+		process(t);
+	else
+		cgi_notfound(t);
+}
+
+static void
+process(struct mythread *t)
+{
 	int		 L = t->lang;
-	if (*path) {
-		if (cgi_path(&path, "os"))
-			www_os(t, path);
-		else if (cgi_path(&path, "games"))
-			www_games(t, path);
-		else if (cgi_path(&path, "utils"))
-			www_utils(t, path);
-		else
-			cgi_notfound(t);
-		return;
-	}
 	cgi_html_begin(t, str__s_s_personal_website[L],
 	    str__s_s_personal_website[L],
 	    str_ali_farzanrad[L],

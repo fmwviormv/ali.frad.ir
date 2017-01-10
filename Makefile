@@ -15,7 +15,7 @@ MAN=
 
 DEBUD=	-g
 
-CFLAGS+= -Wall
+CFLAGS+= -Wall -Werror
 CFLAGS+= -Wstrict-prototypes -Wmissing-prototypes
 CFLAGS+= -Wmissing-declarations
 CFLAGS+= -Wshadow -Wpointer-arith -Wcast-qual

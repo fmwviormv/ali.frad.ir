@@ -67,6 +67,8 @@ cgi_html_begin(struct mythread *t, const char *title_fmt,
 	va_list		 ap;
 	fastcgi_addhead(t, "Content-Type: " MIME_HTML "\n");
 	fastcgi_addbody(t, "<!DOCTYPE html>\n"
+	    "<!-- This document is obfuscated, see "
+	    "https://github.com/fmwviormv/ali.frad.ir -->\n"
 	    "<html dir=\"%s\" lang=\"%s\">"
 	    "<head>"
 	    "<meta charset=\"utf-8\">"

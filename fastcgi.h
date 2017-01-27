@@ -139,13 +139,16 @@ void		 cgi_main(struct mythread *, struct myconnect *);
 int		 cgi_path(const char **, const char *);
 void		 cgi_html_begin(struct mythread *, const char *,
 		    const char *, ...);
-void		 cgi_html_head(struct mythread *);
+void		 cgi_html_head(struct mythread *, const char *, ...);
 void		 cgi_html_tail(struct mythread *);
 void		 cgi_notfound(struct mythread *);
 void		 cgi_binary2(struct mythread *, const void *, int);
 void		 cgi_base64_2(struct mythread *, const void *, int);
 void		 cgi_image2(struct mythread *, const void *, int);
 void		 www(struct mythread *, const char *);
+void		 www_me(struct mythread *, const char *);
+void		 www_me_edu(struct mythread *, const char *);
+void		 www_me_work(struct mythread *, const char *);
 void		 www_os(struct mythread *, const char *);
 void		 www_games(struct mythread *, const char *);
 void		 www_games_dhewm3(struct mythread *, const char *);

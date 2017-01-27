@@ -48,10 +48,8 @@ cgi_notfound(struct mythread *t)
 	fastcgi_addbody(t, "<style>%s", res_css_common);
 	fastcgi_trim_end(t);
 	fastcgi_addbody(t, "</style>");
-	cgi_html_head(t);
-	fastcgi_addbody(t, "<h3>%s</h3>"
-	    "<h5>%s%s</h5>",
-	    str_not_found[L],
+	cgi_html_head(t, "%s", str_not_found[L]);
+	fastcgi_addbody(t, "<h5>%s%s</h5>",
 	    str_requested_resource_not_found[L],
 	    lang_period[L]);
 	cgi_html_tail(t);
@@ -93,9 +91,10 @@ cgi_html_begin(struct mythread *t, const char *title_fmt,
 }
 
 void
-cgi_html_head(struct mythread *t)
+cgi_html_head(struct mythread *t, const char *title_fmt, ...)
 {
 	int		 L = t->lang;
+	va_list		 ap;
 	const char	*path = t->path_info;
 	const char	*dir = lang_dir[L];
 	const char	*end = dir && *dir == 'r' ? "left" : "right";
@@ -105,7 +104,6 @@ cgi_html_head(struct mythread *t)
 	fastcgi_addbody(t, "</head>"
 	    "<body>"
 	    "<div style=\""
-	    "height:30pt;"
 	    "margin:0 0 10pt 0;"
 	    "padding:10pt 10pt;"
 	    "overflow:hidden;"
@@ -131,7 +129,16 @@ cgi_html_head(struct mythread *t)
 		fastcgi_addbody(t, "<a href=\"%s/%s/%s\">%s</a>",
 		    t->base_path, lang_code[LANG_FA], path,
 		    str_persian[LANG_FA]);
-	fastcgi_addbody(t, "</div></div>");
+	fastcgi_addbody(t, "</span></div>");
+	if (title_fmt) {
+		fastcgi_addbody(t, "<h3>");
+		if (t->body_len >= 0) {
+			va_start(ap, title_fmt);
+			t->body_len += vsnprintf(t->body + t->body_len,
+			    sizeof(t->body) - t->body_len, title_fmt, ap);
+		}
+		fastcgi_addbody(t, "</h3><br />");
+	}
 }
 
 void

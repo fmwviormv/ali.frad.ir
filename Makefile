@@ -8,6 +8,7 @@ obj:
 SUDO?=	doas
 PROG=	ali.frad.ir
 SRCS+=	fastcgi.c cgi.c www.c
+SRCS+=	www_me.c www_me_edu.c www_me_work.c
 SRCS+=	www_os.c
 SRCS+=	www_games.c
 SRCS+=	www_utils.c
@@ -57,7 +58,7 @@ res_parser: res_parser.c
 
 ###
 
-.depend ${SRCS:N*.h:N*.sh:R:S/$/.o/}: lang.h res.h
+.depend ${SRCS:N*.h:N*.sh:R:S/$/.o/}: fastcgi.h lang.h res.h
 
 test: ${PROG}
 	${SUDO} ${PROG} -d

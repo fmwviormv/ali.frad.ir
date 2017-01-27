@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <sys/un.h>
 
+#include <ctype.h>
 #include <err.h>
 #include <errno.h>
 #include <event.h>
@@ -519,6 +520,15 @@ fastcgi_worker(void *arg)
 			t->server_name = fastcgi_param(t, "SERVER_NAME");
 			t->server_port = fastcgi_param(t, "SERVER_PORT");
 			t->server_software = fastcgi_param(t, "SERVER_SOFTWARE");
+			t->base_path[0] = 0;
+			if (t->script_name) {
+				int len;
+				strlcpy(t->base_path, t->script_name,
+				    sizeof(t->base_path));
+				len = strlen(t->base_path);
+				if (len > 0 && t->base_path[len - 1] == '/')
+					t->base_path[len - 1] = 0;
+			}
 			cgi_main(t, c);
 		}
 		c->next = NULL;
@@ -674,6 +684,15 @@ fastcgi_addlog(struct mythread *t, const char *fmt, ...)
 	return len;
 }
 
+void
+fastcgi_trim_end(struct mythread *t)
+{
+	if (t->body_len < 0)
+		return;
+	while (t->body_len > 0 && isspace(t->body[t->body_len - 1]))
+		--t->body_len;
+	t->body[t->body_len] = 0;
+}
 
 void
 fastcgi_end(struct mythread *t, struct myconnect *c)

@@ -159,9 +159,19 @@ main(int argc, char **argv)
 	while (col[ncol])
 		++ncol;
 	if (mode == 'h') {
+		int icol;
 		printf(
 			"#define LANG_COUNT\t%d\n"
 			"", ncol);
+		for (icol = 0; icol < ncol; ++icol) {
+			const char *lang_code = col[icol];
+			int ich;
+			printf("#define LANG_");
+			for (ich = 0; lang_code[ich]; ++ich)
+				putchar(toupper(lang_code[ich]));
+			printf("\t%d\n", icol);
+		}
+		puts("");
 	}
 	print_string_array(mode, "lang_code", "", col);
 	col = separate(SEPARATOR);

@@ -14,7 +14,7 @@
 #define TIMEOUT_DEFAULT		120
 
 #define BUF_PER_CONNECT		(440 << 10)
-#define BUF_PER_THREAD		(880 << 10)
+#define BUF_PER_THREAD		(512 << 10)
 #define FD_PER_CONNECT		1
 #define FD_PER_THREAD		2
 #define FD_RESERVED		15
@@ -74,6 +74,7 @@ struct mythread {
 	const char	*content;
 	pthread_t	 thread;
 	z_stream	 gzip;
+	char		 base_path[64 << 10];
 	char		 in_buf[BUF_PER_CONNECT];
 	char		 head[64 << 10];
 	char		 log[64 << 10];
@@ -132,6 +133,7 @@ const char	*fastcgi_param(struct mythread *, const char *);
 int		 fastcgi_addhead(struct mythread *, const char *, ...);
 int		 fastcgi_addbody(struct mythread *, const char *, ...);
 int		 fastcgi_addlog(struct mythread *, const char *, ...);
+void		 fastcgi_trim_end(struct mythread *);
 void		 fastcgi_end(struct mythread *, struct myconnect *);
 void		 cgi_main(struct mythread *, struct myconnect *);
 int		 cgi_path(const char **, const char *);

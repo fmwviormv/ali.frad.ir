@@ -5,6 +5,7 @@
 
 #include "fastcgi.h"
 #include "lang.h"
+#include "res.h"
 
 static void	 cgi_root(struct mythread *);
 
@@ -27,15 +28,9 @@ int
 cgi_path(const char **path, const char *s)
 {
 	int		 len = strlen(s);
-	int		 ch;
-	if (strncmp(*path, s, len) != 0)
+	if (strncmp(*path, s, len) != 0 || (*path)[len] != '/')
 		return 0;
-	ch = (*path)[len];
-	if (ch && ch != '/')
-		return 0;
-	*path += len;
-	if (**path == '/')
-		++*path;
+	*path += len + 1;
 	return 1;
 }
 
@@ -50,6 +45,9 @@ cgi_notfound(struct mythread *t)
 	int		 L = t->lang;
 	fastcgi_addhead(t, "Status: %d\n", 404);
 	cgi_html_begin(t, str_not_found[L], NULL);
+	fastcgi_addbody(t, "<style>%s", res_css_common);
+	fastcgi_trim_end(t);
+	fastcgi_addbody(t, "</style>");
 	cgi_html_head(t);
 	fastcgi_addbody(t, "<h3>%s</h3>"
 	    "<h5>%s%s</h5>",
@@ -97,8 +95,43 @@ cgi_html_begin(struct mythread *t, const char *title_fmt,
 void
 cgi_html_head(struct mythread *t)
 {
+	int		 L = t->lang;
+	const char	*path = t->path_info;
+	const char	*dir = lang_dir[L];
+	const char	*end = dir && *dir == 'r' ? "left" : "right";
+	if (*path == '/')
+		++path;
+	cgi_path(&path, lang_code[L]);
 	fastcgi_addbody(t, "</head>"
-	    "<body>");
+	    "<body>"
+	    "<div style=\""
+	    "height:30pt;"
+	    "margin:0 0 10pt 0;"
+	    "padding:10pt 10pt;"
+	    "overflow:hidden;"
+	    "background:linear-gradient(to %s,#0f8,#0df);"
+	    "\"><a href=\"%s/%s/\" style=\""
+	    "font-size:20pt;"
+	    "\">",
+	    end,
+	    t->base_path, lang_code[L]);
+	fastcgi_addbody(t, str__s_s_personal_website[L],
+	    str_ali_farzanrad[L]);
+	fastcgi_addbody(t, "</a>"
+	    "<span style=\""
+	    "font-size:10pt;"
+	    "float:%s;"
+	    "\">",
+	    end);
+	if (L != LANG_EN)
+		fastcgi_addbody(t, "<a href=\"%s/%s/%s\">%s</a>",
+		    t->base_path, lang_code[LANG_EN], path,
+		    str_english[LANG_EN]);
+	if (L != LANG_FA)
+		fastcgi_addbody(t, "<a href=\"%s/%s/%s\">%s</a>",
+		    t->base_path, lang_code[LANG_FA], path,
+		    str_persian[LANG_FA]);
+	fastcgi_addbody(t, "</div></div>");
 }
 
 void

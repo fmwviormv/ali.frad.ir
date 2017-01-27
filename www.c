@@ -2,6 +2,7 @@
 
 #include "fastcgi.h"
 #include "lang.h"
+#include "res.h"
 
 static void	 process(struct mythread *);
 
@@ -28,6 +29,9 @@ process(struct mythread *t)
 	    str__s_s_personal_website[L],
 	    str_ali_farzanrad[L],
 	    str_ali_farzanrad[L]);
+	fastcgi_addbody(t, "<style>%s", res_css_common);
+	fastcgi_trim_end(t);
+	fastcgi_addbody(t, "</style>");
 	cgi_html_head(t);
 	fastcgi_addbody(t, "<h3>");
 	fastcgi_addbody(t, str__s_s_personal_website[L],

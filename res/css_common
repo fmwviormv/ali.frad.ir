@@ -1,1 +1,1 @@
-*{margin:0;}a{text-decoration:none;}
+@media print{.noprint{display:none;}}*{margin:0;}a{text-decoration:none;}

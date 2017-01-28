@@ -139,12 +139,13 @@ cgi_html_head(struct mythread *t, const char *title_fmt, ...)
 	cgi_path(&path, lang_code[L]);
 	fastcgi_addbody(t, "</head>"
 	    "<body>"
-	    "<div style=\""
+	    "<div class=\"noprint\" style=\""
 	    "margin:0 0 10pt 0;"
 	    "padding:10pt 10pt;"
 	    "overflow:hidden;"
 	    "background:linear-gradient(to %s,#0f8,#0df);"
-	    "\"><a href=\"%s/%s/\" style=\""
+	    "\">"
+	    "<a href=\"%s/%s/\" style=\""
 	    "font-size:20pt;"
 	    "\">",
 	    end,

@@ -181,7 +181,10 @@ main(int argc, char **argv)
 	g->num_thread = threads;
 	g->max_connect = connects;
 	g->ll_free = g->connect;
+	g->next_connect_history = 0;
 	g->num_connect = 0;
+	g->num_connect_per_sec = 0;
+	g->num_connect_per_min = 0;
 	g->ll_jobdone = NULL;
 	g->ll_last_jobdone = NULL;
 	g->ll_job = NULL;
@@ -211,7 +214,7 @@ main(int argc, char **argv)
 			errx(1, "could not init gzip #%d", i);
 	}
 
-	event_add(&g->ev_accept, NULL);
+	fastcgi_resume(0, 0, g);
 	signal_add(&g->ev_sigterm, NULL);
 	signal_add(&g->ev_sigint, NULL);
 	signal_add(&g->ev_sigpipe, NULL);
@@ -251,14 +254,12 @@ fastcgi_accept(int fd, short events, void *arg)
 	struct myglobal		*g = arg;
 	struct myconnect	*c = NULL;
 	struct sockaddr_storage	 ss;
-	struct timeval		 backoff = { 1, 0 };
 	struct timeval		 timeout = { TIMEOUT_DEFAULT, 0 };
 	socklen_t		 len = sizeof(ss);
 	int			 s;
 
 	if (g->ll_free == NULL) {
 		event_del(&g->ev_accept);
-		event_add(&g->ev_resume, &backoff);
 		return;
 	}
 	if ((s = accept4(fd, (struct sockaddr *)&ss, &len,
@@ -271,7 +272,6 @@ fastcgi_accept(int fd, short events, void *arg)
 		case EMFILE:
 		case ENFILE:
 			event_del(&g->ev_accept);
-			event_add(&g->ev_resume, &backoff);
 			return;
 		default:
 			errx(1, "unknown error on accept: %d", errno);
@@ -280,6 +280,7 @@ fastcgi_accept(int fd, short events, void *arg)
 	c = g->ll_free;
 	g->ll_free = c->next;
 	++g->num_connect;
+	++g->connect_counter;
 	c->fd = s;
 	c->fcgi_id = -1;
 	c->param_len = 0;
@@ -301,8 +302,18 @@ fastcgi_accept(int fd, short events, void *arg)
 static void
 fastcgi_resume(int fd, short events, void *arg)
 {
+	struct timeval	 one_sec = { 1 , 0 };
 	struct myglobal	*g = arg;
+	int		 i;
 	event_add(&g->ev_accept, NULL);
+	event_add(&g->ev_resume, &one_sec);
+	i = g->next_connect_history;
+	g->next_connect_history = i + 1 < 60 ? i + 1 : 0;
+	g->num_connect_per_sec = g->connect_counter;
+	g->num_connect_per_min = g->num_connect_per_min +
+	    g->connect_counter - g->connect_history[i];
+	g->connect_history[i] = g->connect_counter;
+	g->connect_counter = 0;
 }
 
 static void

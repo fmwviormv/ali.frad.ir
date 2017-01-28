@@ -8,6 +8,7 @@ obj:
 SUDO?=	doas
 PROG=	ali.frad.ir
 SRCS+=	fastcgi.c cgi.c www.c
+SRCS+=	www_stat.c
 SRCS+=	www_me.c www_me_edu.c www_me_work.c
 SRCS+=	www_os.c
 SRCS+=	www_games.c

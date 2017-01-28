@@ -9,7 +9,9 @@ static void	 process(struct mythread *);
 void
 www(struct mythread *t, const char *path)
 {
-	if (cgi_path(&path, "me"))
+	if (cgi_path(&path, "stat"))
+		www_stat(t, path);
+	else if (cgi_path(&path, "me"))
 		www_me(t, path);
 	else if (cgi_path(&path, "os"))
 		www_os(t, path);

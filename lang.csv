@@ -5,35 +5,51 @@ ltr,rtl
 .,.
 !,!
 ?,؟
+%s in %s,%s %s
 %s is my favorite operating system,سیستم عامل مورد علاقه من %s است
+%s to %s,%s تا %s
 %s's personal website,صفحه شخصی %s
 2008,۱۳۸۷
 2012,۱۳۹۱
 2014,۱۳۹۳
 About me,درباره من
+After %s,پس از %s
 Ali Farzan rad,علی فرزان راد
 Ali Farzanrad,علی فرزان‌راد
 Amirkabir University of Technology,دانشگاه صنعتی امیرکبیر
 Bachelor of science in %s,مدرک کارشناسی در رشته %s
+Before %s,پیش از %s
 but there is a problem in displaying results,ولی مشکلی در نمایش اطلاعات پیش آمده است
 C programming language,زبان برنامه نویسی C
+code quality,کیفیت کد
 Computer Science,علوم کامپیوتر
 Content List,فهرست محتوا
 English,انگلیسی
 Error,خطا
-from %s to %s,از %s تا %s
+high performance computing,پردازش سریع
+I developed %s using %s with %s in mind,%s را به کمک %s و با توجه به %s طراحی کردم
 I graduated from %s in %s with a %s's degree in %s,فارغ التحصیل %s %s در مقطع %s در رشته %s
+I learned more about %s and %s,درباره %s و %s مطالعات بیشتری کردم
 I love %s and %s,من به %s و %s بسیار علاقه دارم
 I'm %s,%s هستم
 Master of science in %s,کارشناسی ارشد در رشته %s
 More,بیشتر
 MSc,کارشناسی ارشد
 My educations,تحصیلات من
+my personal website,وبسایت شخصی خودم
 My works,فعالیت‌های من
 Not Found,یافت نشد
+Number of connections per minute,تعداد اتصالات در دقیقه
+Number of connections per second,تعداد اتصالات در ثانیه
+Number of open connections,تعداد اتصالات باز
 Persian,فارسی
 Please compress uploading files and try again,لطفا حجم فایل‌های ارسالی را کاهش داده و دوباره تلاش کنید
 Requested resource not found,صفحه مورد نظر یافت نشد
+security and performance,امنیت و سرعت
+Server Status,وضعیت سرور
 Tehran,تهران
+Unknown,ناشناخته
+Welcome to my personal website,به وبسایت شخصی من خوش آمدید
+You can view this website in following languages,شما می‌توانید با این زبان‌ها از این سایت بازدید کنید
 Your request completed,درخواست شما انجام شد
 Your request is too big,اطلاعات ارسالی شما بسیار بزرگ است

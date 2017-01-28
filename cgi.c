@@ -37,6 +37,42 @@ cgi_path(const char **path, const char *s)
 static void
 cgi_root(struct mythread *t)
 {
+	int		 L = t->lang;
+	int		 lang_index;
+	cgi_html_begin(t, str__s_s_personal_website[L],
+	    str__s_s_personal_website[L],
+	    str_ali_farzanrad[L],
+	    str_ali_farzanrad[L]);
+	fastcgi_addbody(t, "<style>%s", res_css_common);
+	fastcgi_trim_end(t);
+	fastcgi_addbody(t, "</style>");
+	cgi_html_head(t, str__s_s_personal_website[L],
+	    str_ali_farzanrad[L]);
+	fastcgi_addbody(t, "<p>%s%s</p>",
+	    str_welcome_to_my_personal_website[L],
+	    lang_period[L]);
+	fastcgi_addbody(t, "<p>%s%s</p><ul>",
+	    str_you_can_view_this_website_in_following_languages[L],
+	    lang_colon[L]);
+
+	for (lang_index = 0; lang_index < LANG_COUNT; ++lang_index) {
+		const char *lang_title;
+		if (lang_index == LANG_EN)
+			lang_title = str_english[L];
+		else if (lang_index == LANG_FA)
+			lang_title = str_persian[L];
+		else
+			lang_title = str_unknown[L];
+
+		fastcgi_addbody(t, "<li><a href=\"%s/\">%s</a>%s</li>",
+		    lang_code[lang_index],
+		    lang_title,
+		    lang_index < LANG_COUNT - 1 ?
+		    lang_comma[L] : lang_period[L]);
+	}
+
+	fastcgi_addbody(t, "</ul>");
+	cgi_html_tail(t);
 }
 
 void

@@ -105,7 +105,11 @@ struct myconnect {
 struct myglobal {
 	int		 num_thread;
 	int		 max_connect;
+	int		 next_connect_history;
+	int		 connect_counter;
 	volatile int	 num_connect;
+	volatile int	 num_connect_per_sec;
+	volatile int	 num_connect_per_min;
 	struct myconnect *ll_free;
 	struct myconnect *volatile ll_jobdone;
 	struct myconnect *volatile ll_last_jobdone;
@@ -123,6 +127,7 @@ struct myglobal {
 	struct event	 ev_sigusr1;
 	struct mythread *thread;
 	struct myconnect *connect;
+	int		 connect_history[60];
 };
 
 #define cgi_binary(t, r)	cgi_binary2(t, r, sizeof(r))
@@ -146,6 +151,7 @@ void		 cgi_binary2(struct mythread *, const void *, int);
 void		 cgi_base64_2(struct mythread *, const void *, int);
 void		 cgi_image2(struct mythread *, const void *, int);
 void		 www(struct mythread *, const char *);
+void		 www_stat(struct mythread *, const char *);
 void		 www_me(struct mythread *, const char *);
 void		 www_me_edu(struct mythread *, const char *);
 void		 www_me_work(struct mythread *, const char *);

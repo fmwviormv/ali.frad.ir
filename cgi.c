@@ -120,7 +120,7 @@ cgi_html_begin(struct mythread *t, const char *title_fmt,
 		fastcgi_addbody(t, "<meta name=\"description\" content=\"");
 		if (t->body_len >= 0)
 			t->body_len += vsnprintf(t->body + t->body_len,
-			    sizeof(t->body) - t->body_len, title_fmt, ap);
+			    sizeof(t->body) - t->body_len, desc_fmt, ap);
 		fastcgi_addbody(t, "\">");
 	}
 	va_end(ap);

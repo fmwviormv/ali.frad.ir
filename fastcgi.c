@@ -157,27 +157,37 @@ main(int argc, char **argv)
 		    - FD_RESERVED) / FD_PER_CONNECT;
 	}
 
-	if (connects <= 0 ||
-	    geteuid() != 0 ||
-	    (!debug && daemon(1, 0) < 0) ||
-	    (pw = getpwnam(SOCKET_OWNER)) == NULL)
-		errx(1, "daemon/%d%d%d", connects <= 0, !!getuid(), !pw);
+	if (connects <= 0)
+		errx(1, "invalid number of connects = %d", connects);
+	if (geteuid() != 0)
+		errx(1, "you must be root");
+	if (!debug && daemon(1, 0) < 0))
+		errx(1, "daemon);
+	if (pw = getpwnam(SOCKET_OWNER)) == NULL)
+		errx(1, "getpwnam");
 	fd = fastcgi_listen(fastcgi_socket, pw, 5);
-	if ((pw = getpwnam(fastcgi_user)) == NULL ||
-	    (!chrootpath && !(chrootpath = pw->pw_dir)) ||
-	    chroot(chrootpath) < 0 ||
-	    chdir("/") < 0 ||
-	    setgroups(1, &pw->pw_gid) ||
-	    setresgid(pw->pw_gid, pw->pw_gid, pw->pw_gid) ||
-	    setresuid(pw->pw_uid, pw->pw_uid, pw->pw_uid) ||
-	    pledge("stdio rpath unix proc", NULL) < 0)
-		errx(1, "chroot/%d%d", !pw, !chrootpath);
+	if ((pw = getpwnam(fastcgi_user)))
+		errx(1, "getpwnam");
+	if (!chrootpath && !(chrootpath = pw->pw_dir))
+		errx(1, "chrootpath");
+	if (chroot(chrootpath) < 0)
+		errx(1, "chroot");
+	if (chdir("/") < 0)
+		errx(1, "chdir");
+	if (setgroups(1, &pw->pw_gid))
+		errx(1, "setgroups");
+	if (setresgid(pw->pw_gid, pw->pw_gid, pw->pw_gid))
+		errx(1, "setresgid");
+	if (setresuid(pw->pw_uid, pw->pw_uid, pw->pw_uid))
+		errx(1, "setresuid");
+	if (pledge("stdio rpath unix proc", NULL) < 0)
+		errx(1, "pledge");
 	event_init();
 
 	if ((g = calloc(1, sizeof(*g))) == NULL ||
 	    (g->thread = calloc(threads, sizeof(*g->thread))) == NULL ||
 	    (g->connect = calloc(connects, sizeof(*g->connect))) == NULL)
-		errx(1, "calloc:%d%d%d", !g, !g->thread, !g->connect);
+		errx(1, "calloc");
 	g->num_thread = threads;
 	g->max_connect = connects;
 	g->ll_free = g->connect;
@@ -908,8 +918,6 @@ fastcgi_add_fcgi_multirecord(struct myconnect *c, int type,
 		t -= len1;
 		if (t > 0)
 			memcpy(p, content2, t);
-		content2 += t;
-		len2 -= t;
 		return res;
 	}
 	while (len2 > 0) {

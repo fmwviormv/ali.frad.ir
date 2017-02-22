@@ -161,12 +161,12 @@ main(int argc, char **argv)
 		errx(1, "invalid number of connects = %d", connects);
 	if (geteuid() != 0)
 		errx(1, "you must be root");
-	if (!debug && daemon(1, 0) < 0))
-		errx(1, "daemon);
-	if (pw = getpwnam(SOCKET_OWNER)) == NULL)
+	if (!debug && daemon(1, 0) < 0)
+		errx(1, "daemon");
+	if ((pw = getpwnam(SOCKET_OWNER)) == NULL)
 		errx(1, "getpwnam");
 	fd = fastcgi_listen(fastcgi_socket, pw, 5);
-	if ((pw = getpwnam(fastcgi_user)))
+	if ((pw = getpwnam(fastcgi_user)) == NULL)
 		errx(1, "getpwnam");
 	if (!chrootpath && !(chrootpath = pw->pw_dir))
 		errx(1, "chrootpath");

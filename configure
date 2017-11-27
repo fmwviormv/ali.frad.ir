@@ -1,0 +1,413 @@
+#!/bin/sh
+#
+# Guess values for system-dependent variables and create Makefiles.
+#
+# This script belongs to the public domain.
+#
+
+(exit $?0) || exec sh $0 $argv:q
+
+set -o sh
+
+d_prefix='/usr/local'
+
+while test $# -gt 0; do
+	case "$1" in
+	-h | --help)
+		cat <<EOM
+NOTE: NEVER RUN AN UNKNOWN SCRIPT
+
+Usage: $0 [OPTION]... [VAR=VALUE]...
+
+Options:
+	-h, --help       display this help and exit
+	-q, --quiet,
+	    --silent     do not print \`checking ...' messages
+	-n, --no-create  do not create output files
+	--prefix=PREFIX  install files in PREFIX (default: $d_prefix)
+
+Variables:
+	MAKE             \`make' utility
+	CC               C compiler
+	CFLAGS           C compiler flags
+	LDFLAGS          linker flags, e.g. -L<lib dir>
+	LIBS             libraries, e.g. -l<library>
+	PKG_CONFIG       pkg-config utility
+
+It is recommended to run configure in an empty directory.
+
+EOM
+		exit 0;;
+	-n | --no-create)
+		NO_CREATE=1
+		shift;;
+	--prefix=*)
+		PREFIX=$(echo "$1" | sed 's/--prefix=//')
+		shift;;
+	--prefix)
+		shift
+		PREFIX=$1
+		shift;;
+	-q | --quiet | --silent)
+		exec >/dev/null 2>&1
+		shift;;
+	-*)
+		echo "WARNING: ignoring \`$1'" >&2
+		shift;;
+	*=*)
+		eval "$1"
+		shift;;
+	*)
+		echo "WARNING: ignoring \`$1'" >&2
+		shift;;
+	esac
+done
+
+t=CONFIGDIR
+mkdir -p $t/1 || (echo "ERROR: could not create directory" >&2; exit 1)
+n='-n'
+c='\c'
+case "$(echo -n x)" in
+-*) n='';;
+*) c='';;
+esac
+case "$PREFIX" in
+'') PREFIX="$d_prefix";;
+esac
+case "$PKG_CONFIG" in
+'') PKG_CONFIG="pkg-config";;
+esac
+
+echo $n "source directory:$c"
+case "$SRCDIR" in
+'') SRCDIR="$(echo "X$0" | sed -e s/X// -e 's|/*[^/]*$||')";;
+esac
+case "$SRCDIR" in
+'') SRCDIR='.';;
+esac
+echo " \`$SRCDIR'"
+
+echo $n "checking make utility...$c"
+case "$MAKE" in
+'') MAKE='make';;
+esac
+sed s/X// <<EOM >$t/Makefile
+Xall:
+X	echo hi
+EOM
+if (cd $t; $MAKE) >/dev/null 2>&1; then
+	echo " \`$MAKE'"
+else
+	echo " not found"
+	echo "ERROR: make utility not found" >&2
+	exit 1
+fi
+
+echo $n "checking Makefile style...$c"
+echo '.include <bsd.prog.mk>' >$t/Makefile
+if (cd $t; $MAKE) >/dev/null 2>&1; then
+	make_style=bsd
+else
+	make_style=gnu
+fi
+echo " $make_style"
+
+make_search_style=''
+echo $n "checking Makefile search path style...$c"
+touch $t/1/t
+if (cd $t; sed s/X// <<EOM >Makefile; $MAKE) >/dev/null 2>&1; then
+X.PATH: \${.CURDIR}/1
+Xall: t
+EOM
+	make_search_style='.PATH'
+elif (cd $t; sed s/X// <<EOM >Makefile; $MAKE) >/dev/null 2>&1; then
+XVPATH= 1
+Xall: t
+EOM
+	make_search_style='VPATH'
+fi
+echo " \`$make_search_style'"
+mv $t/1/t $t/test.c
+
+sed s/X// <<EOM >$t/Makefile
+XCFLAGS+= ${CFLAGS}
+XLDFLAGS+= ${LDFLAGS} ${LIBS}
+XCFLAGS+= ${detected_cflags}
+XLDFLAGS+= ${detected_ldflags}
+XPROG= test
+XSRCS= test.c
+XNOMAN=
+EOM
+test "X$CC" = "X" || echo "CC= $CC" >>$t/Makefile
+case "$make_style" in
+bsd) echo '.include <bsd.prog.mk>' >>$t/Makefile;;
+gnu) sed s/X// <<EOM >>$t/Makefile;;
+X
+XOBJS= \${SRCS:.c=.o}
+X.SUFFIXES:
+X.SUFFIXES: .c .o
+X.c.o:
+X	\${CC} -c \${CFLAGS} \$<
+X\$PROG: \${OBJS}
+X	\${CC} -o \$@ \${OBJS} \${LDFLAGS}
+EOM
+esac
+missing_utils=''
+detected_cflags=''
+detected_ldflags=''
+
+echo $n "checking C compiler...$c"
+echo 'int main(void) { return 0; }' >$t/test.c
+if (cd $t; $MAKE) >/dev/null 2>&1; then
+	case "$CC" in
+	'') echo " system default compiler";;
+	*) echo " \`$CC'";;
+	esac
+else
+	echo " not found"
+	echo "ERROR: C compiler not found" >&2
+	exit 1
+fi
+
+echo $n "checking for local include...$c"
+echo '#include "test.h"' >$t/test.c
+echo 'int main(void) { return 0; }' >$t/1/test.h
+found_cflags=''
+for testing_cflags in '-I${.CURDIR}/' '-I'; do
+	sed -i -e "3s| .*| $detected_cflags ${testing_cflags}1|" \
+	    -e "4s| .*| $detected_ldflags|" $t/Makefile
+	if (cd $t; $MAKE) >/dev/null 2>&1; then
+		case "$SRCDIR" in
+		/*) found_cflags="-I. -I${SRCDIR}";;
+		*) found_cflags="-I. ${testing_cflags}${SRCDIR}";;
+		esac
+		break
+	fi
+done
+case "$found_cflags" in
+'') echo " not found"
+	echo "WARNING: you need to copy header files manually" >&2;;
+*) found_cflags="$(echo "X$found_cflags" | sed -e s/X// -e 's|/[.]$||')"
+	echo " \`$found_cflags'"
+	detected_cflags="$detected_cflags $found_cflags";;
+esac
+
+echo $n "checking for C99 support...$c"
+sed s/X// <<EOM >$t/test.c
+Xint main(int argc, const char *argv[])
+X{ if (argc < 0) argc = 0; int x = argc; return x; }
+EOM
+found_cflags='not found'
+for testing_cflags in '-std=c99 -pedantic' '-std=c99' ''; do
+	sed -i -e "3s| .*| $detected_cflags $testing_cflags|" \
+	    -e "4s| .*| $detected_ldflags|" $t/Makefile
+	if (cd $t; $MAKE) >/dev/null 2>&1; then
+		found_cflags="$testing_cflags"
+		break
+	fi
+done
+case "$found_cflags" in
+'') echo " no flag is required";;
+'not found') echo " $found_cflags"
+	echo "ERROR: C99 is not supported" >&2
+	exit 1;;
+*) echo " \`$found_cflags'"
+	detected_cflags="$detected_cflags $found_cflags";;
+esac
+
+echo $n "checking for warnings...$c"
+echo 'int main(void) { return 0; }' >$t/test.c
+found_cflags=''
+for testing_cflags in -Werror -Wall -Wimplicit-function-declaration \
+    -Wno-uninitialized -Wno-pointer-sign \
+    -Wno-address-of-packed-member -Wno-constant-conversion \
+    -Wframe-larger-than=2047 \
+    -Wstrict-prototypes -Wmissing-prototypes -Wsign-compare \
+    -Wmissing-declarations -Wshadow -Wpointer-arith -Wcast-qual; do
+	sed -i -e "3s| .*| $detected_cflags $testing_cflags|" \
+	    -e "4s| .*| $detected_ldflags|" $t/Makefile
+	if (cd $t; $MAKE) >/dev/null 2>&1; then
+		found_cflags="$found_cflags $testing_cflags"
+	else
+		exit 1
+	fi
+done
+found_cflags="$(echo " $found_cflags" | sed 's/^ *//')"
+case "$found_cflags" in
+'') echo " no flag is detected";;
+*) echo " \`$found_cflags'"
+	detected_cflags="$detected_cflags $found_cflags";;
+esac
+
+echo $n "checking for other flags...$c"
+echo 'int main(void) { return 0; }' >$t/test.c
+found_cflags=''
+for testing_cflags in -pipe -O2; do
+	sed -i -e "3s| .*| $detected_cflags $testing_cflags|" \
+	    -e "4s| .*| $detected_ldflags|" $t/Makefile
+	if (cd $t; $MAKE) >/dev/null 2>&1; then
+		found_cflags="$found_cflags $testing_cflags"
+	else
+		exit 1
+	fi
+done
+found_cflags="$(echo " $found_cflags" | sed 's/^ *//')"
+case "$found_cflags" in
+'') echo " no flag is detected";;
+*) echo " \`$found_cflags'"
+	detected_cflags="$detected_cflags $found_cflags";;
+esac
+
+echo $n "checking for standard library...$c"
+sed s/X// <<EOM >$t/test.c
+X#include <stdio.h>
+Xint main(int argc, const char *argv[])
+X{ printf("%d", argc); return 0; }
+EOM
+found_ldflags='not found'
+for testing_ldflags in '' '-lc'; do
+	sed -i -e "3s| .*| $detected_cflags|" \
+	    -e "4s| .*| $detected_ldflags $testing_ldflags|" $t/Makefile
+	if (cd $t; $MAKE) >/dev/null 2>&1; then
+		found_ldflags="$testing_ldflags"
+		break
+	fi
+done
+case "$found_ldflags" in
+'') echo " no flag is required";;
+'not found') echo " $found_ldflags"
+	echo "ERROR: standard library is not supported" >&2
+	exit 1;;
+*) echo " \`$found_ldflags'"
+	detected_ldflags="$detected_ldflags $found_ldflags";;
+esac
+
+echo $n "checking for \`pthreads' library...$c"
+sed s/X// <<EOM >$t/test.c
+X#include <pthread.h>
+X#include <stdlib.h>
+Xint main(void) { pthread_join(pthread_self(), NULL); return 0; }
+EOM
+found_cflags='not found'
+for i in '' -pthread -pthreads -lpthread -lpthreads pthread pthreads; do
+	case "$i" in
+	-l*) testing_cflags=''
+		testing_ldflags="$i";;
+	-*) testing_cflags="$i"
+		testing_ldflags="$i";;
+	*) testing_cflags="$($PKG_CONFIG --cflags $i 2>/dev/null)"
+		testing_ldflags="$($PKG_CONFIG --libs $i 2>/dev/null)";;
+	esac
+	sed -i -e "3s| .*| $detected_cflags $testing_cflags|" \
+	    -e "4s| .*| $detected_ldflags $testing_ldflags|" $t/Makefile
+	if (cd $t; $MAKE) >/dev/null 2>&1; then
+		found_cflags="$testing_cflags"
+		found_ldflags="$testing_ldflags"
+		break
+	fi
+done
+case "$found_cflags" in
+'') ;;
+'not found') echo " $found_ldflags"
+	echo "ERROR: standard library is not supported" >&2
+	exit 1;;
+*) detected_cflags="$detected_cflags $found_cflags";;
+esac
+case "$found_ldflags" in
+'') ;;
+*) detected_ldflags="$detected_ldflags $found_ldflags";;
+esac
+echo " \`$found_cflags' \`$found_ldflags'"
+
+sed -i -e "3s| .*| $detected_cflags|" \
+    -e "4s| .*| $detected_ldflags|" $t/Makefile
+
+echo $n "checking for \`pledge' system call...$c"
+sed s/X// <<EOM >$t/test.c
+X#include <stdlib.h>
+X#include <unistd.h>
+Xint main(int argc, const char *argv[])
+X{ pledge(argv[0], NULL); return 0; }
+EOM
+if (cd $t; $MAKE) >/dev/null 2>&1; then
+	echo " found"
+else
+	echo " not found"
+	missing_utils="$missing_utils -DNO_PLEDGE"
+fi
+
+missing_utils="$(echo " $missing_utils" | sed 's/^ *//')"
+detected_cflags="$(echo " $detected_cflags" | sed 's/^ *//')"
+detected_ldflags="$(echo " $detected_ldflags" | sed 's/^ *//')"
+rm -rf $t
+
+case "$NO_CREATE" in
+'') echo $n "generating Makefile...$c"
+	t='Makefile';;
+*) t='/dev/null';;
+esac
+cat <<EOM >$t
+EOM
+case "$make_search_style" in
+.*) case "$SRCDIR" in
+	/*) sed s/X// <<EOM >>$t;;
+X${make_search_style}:	${SRCDIR}
+X
+EOM
+	*) sed s/X// <<EOM >>$t;;
+X${make_search_style}:	\${.CURDIR}/${SRCDIR}
+X
+EOM
+	esac;;
+*) sed s/X// <<EOM >>$t;;
+X${make_search_style}=	${SRCDIR}
+X
+EOM
+esac
+sed s/X// <<EOM >>$t
+XPROG=	ali.frad.ir
+XSRCS=	fastcgi.c cgi.c www.c
+XSRCS+=	www_stat.c
+XSRCS+=	www_me.c www_me_edu.c www_me_work.c
+XSRCS+=	www_os.c
+XSRCS+=	www_games.c
+XSRCS+=	www_utils.c
+XNOMAN=
+X
+XDEBUG=	-g
+X
+EOM
+test "X$CC" = "X" || sed s/X// <<EOM >>$t
+XCC=	${CC}
+EOM
+test "X$CFLAGS" = "X" || sed s/X// <<EOM >>$t
+XCFLAGS+=	${CFLAGS}
+EOM
+test "X$LDFLAGS" = "X" || sed s/X// <<EOM >>$t
+XLDFLAGS+=	${LDFLAGS}
+EOM
+test "X$LIBS" = "X" || sed s/X// <<EOM >>$t
+XLDFLAGS+=	${LIBS}
+EOM
+test "X$missing_utils" = "X" || sed s/X// <<EOM >>$t
+XCFLAGS+=	${missing_utils}
+EOM
+test "X$detected_cflags" = "X" || sed s/X// <<EOM >>$t
+XCFLAGS+=	${detected_cflags}
+EOM
+test "X$detected_ldflags" = "X" || sed s/X// <<EOM >>$t
+XLDFLAGS+=	${detected_ldflags}
+EOM
+case "$make_style" in
+bsd) echo '.include <bsd.prog.mk>' >>$t;;
+gnu) sed s/X// <<EOM >>$t;;
+XOBJS=	\${SRCS:.c=.o}
+X.SUFFIXES:
+X.SUFFIXES: .c .o
+X.c.o:
+X	\${CC} -c \${CFLAGS} \$<
+X\$PROG: \${OBJS}
+X	\${CC} -o \$@ \${OBJS} \${LDFLAGS}
+EOM
+esac
+test "X$NO_CREATE" != "X" || echo " done"

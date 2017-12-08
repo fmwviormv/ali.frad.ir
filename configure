@@ -351,17 +351,20 @@ case "$make_search_style" in
 X${make_search_style}: ${SRCDIR}/src
 XRESDIR=	${SRCDIR}/res
 XSRCS!=		cd ${SRCDIR}/src && ls -d *.c
+XHDRS!=		cd ${SRCDIR}/src && ls -d *.h
 EOM
 	*) sed s/X// <<EOM >>$t;;
 X${make_search_style}: \${.CURDIR}/${SRCDIR}/src
 XRESDIR=	\${.CURDIR}/${SRCDIR}/res
 XSRCS!=		cd \${.CURDIR}/${SRCDIR}/src && ls -d *.c
+XHDRS!=		cd \${.CURDIR}/${SRCDIR}/src && ls -d *.h
 EOM
 	esac;;
 *) sed s/X// <<EOM >>$t;;
 X${make_search_style}=		${SRCDIR}/src
 XRESDIR=	${SRCDIR}/res
 XSRCS!=		cd \${${make_search_style}} && ls -d *.c
+XHDRS!=		cd \${${make_search_style}} && ls -d *.h
 EOM
 esac
 case "$make_style" in
@@ -376,16 +379,16 @@ XDEBUG=		-g
 X
 XSRCS+=		res.c
 Xres.h: res.c
-XCLEANFILES+=	res.h res.c res_parser.c res_parser.o res_parser
+XCLEANFILES+=	res.h res.c res_parser*
 XRESUPDATE!=	find \${RESDIR} -newer res.c 2>/dev/null | head -n 1
 Xres.c: res_parser \${RESUPDATE}
 X	./res_parser \${RESDIR}
 Xres_parser: res_parser.o
 X	\${CC} -o \$@ \$< \${LDFLAGS}
 XRESPARSER!=	ls -d \${RESDIR}/*.c
-Xres_parser.c: \${RESDIR}/parser.h \${RESPARSER}
+Xres_parser.c: \${RESDIR} \${RESDIR}/parser.h \${RESPARSER}
 X	cat \${RESDIR}/parser.h \${RESPARSER} >res_parser.c
-X.depend \${SRCS:.c=.o}: fastcgi.h res.h
+X.depend \${SRCS:.c=.o}: res.h \${HDRS}
 EOM
 test "X$CC" = "X" || sed s/X// <<EOM >>$t
 XCC=		${CC}
@@ -417,15 +420,15 @@ X.SUFFIXES:
 X.SUFFIXES: .c .o
 X.c.o:
 X	\${CC} -c \${CFLAGS} \$<
-X\$PROG: \${OBJS}
+X\${PROG}: \${OBJS}
 X	\${CC} -o \$@ \${OBJS} \${LDFLAGS}
 Xclean:
 X	rm -f \${CLEANFILES}
 Xinstall:
-X	install -d -o root -g bin -m 755 ${DESTDIR}${PREFIX}/bin
-X	install -o root -g bin -m 755 \${PROG} ${DESTDIR}${PREFIX}/bin
+X	install -d -o root -g bin -m 755 \${DESTDIR}\${PREFIX}/bin
+X	install -o root -g bin -m 755 \${PROG} \${DESTDIR}\${PREFIX}/bin
 Xuninstall:
-X	rm -f ${DESTDIR}${PREFIX}/bin
+X	rm -f \${DESTDIR}\${PREFIX}/bin
 EOM
 esac
 test "X$NO_CREATE" != "X" || echo " done"

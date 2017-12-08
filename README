@@ -1,4 +1,58 @@
-# ali.frad.ir
+What is ali.frad.ir?
+--------------------
 
-My personal website.
-https://ali.frad.ir/en/
+It is my personal website, currently hosted on a VPS, using OpenBSD,
+httpd, and FastCGI protocol:
+
+https://ali.frad.ir/
+
+
+Requirements
+------------
+
+The main target is OpenBSD httpd and native build infrastructure of
+OpenBSD-CURRENT, but you should build and run it in any UN*X-like
+Operating Systems.
+
+You need BSD/GNU compatible `make' utility, C99 compatible compiler,
+and following libraries: `libevent', `pthreads', and `zlib'.
+
+
+How to build?
+-------------
+
+It is recommended to use an empty directory for build.
+
+	$ mkdir obj
+	$ cd obj/
+	$ ../configure
+	$ make
+
+
+How to run?
+-----------
+
+Using OpenBSD httpd and OpenBSD, you need these instructions:
+
+	# make install
+	# ali.frad.ir
+	# vi /etc/httpd.conf
+	# rcctl restart httpd
+
+
+Configuration for httpd
+-----------------------
+
+	server "*" {
+		listen on * port 80
+		root "/run/ali.frad.ir"
+		fastcgi socket "/run/ali.frad.ir"
+	}
+
+
+Configuration for nginx
+-----------------------
+
+Use "/var/www/run/ali.frad.ir" as the fastcgi socket and the cgi root
+directory.
+

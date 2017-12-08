@@ -27,6 +27,7 @@ It is recommended to use an empty directory for build.
 	$ cd obj/
 	$ ../configure
 	$ make
+	# make install
 
 
 How to run?
@@ -34,14 +35,14 @@ How to run?
 
 Using OpenBSD httpd and OpenBSD, you need these instructions:
 
-	# make install
 	# ali.frad.ir
-	# vi /etc/httpd.conf
 	# rcctl restart httpd
 
 
 Configuration for httpd
 -----------------------
+
+Edit `/etc/httpd.conf' file as follow:
 
 	server "*" {
 		listen on * port 80
@@ -53,6 +54,6 @@ Configuration for httpd
 Configuration for nginx
 -----------------------
 
-Use "/var/www/run/ali.frad.ir" as the fastcgi socket and the cgi root
+Use `/var/www/run/ali.frad.ir' as the fastcgi socket and the cgi root
 directory.
 

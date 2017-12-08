@@ -429,6 +429,7 @@ X	install -d -o root -g bin -m 755 \${DESTDIR}\${PREFIX}/bin
 X	install -o root -g bin -m 755 \${PROG} \${DESTDIR}\${PREFIX}/bin
 Xuninstall:
 X	rm -f \${DESTDIR}\${PREFIX}/bin
+X.PHONY: \${PROG} all clean install uninstall
 EOM
 esac
 test "X$NO_CREATE" != "X" || echo " done"

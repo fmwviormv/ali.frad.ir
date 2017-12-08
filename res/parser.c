@@ -1,10 +1,6 @@
-#include <sys/stat.h>
-#include <sys/syslimits.h>
-
-#include <ctype.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#ifndef _RES_PARSER_H_
+#include "parser.h"
+#endif
 
 char path[PATH_MAX + 1];
 char last_path[PATH_MAX + 1];

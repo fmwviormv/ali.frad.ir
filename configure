@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Guess values for system-dependent variables and create Makefiles.
+# Guess values for system-dependent variables and create Makefile.
 #
 # This script belongs to the public domain.
 #
@@ -42,11 +42,11 @@ EOM
 		NO_CREATE=1
 		shift;;
 	--prefix=*)
-		PREFIX=$(echo "$1" | sed 's/--prefix=//')
+		PREFIX="$(echo "$1" | sed 's/--prefix=//')"
 		shift;;
 	--prefix)
 		shift
-		PREFIX=$1
+		PREFIX="$1"
 		shift;;
 	-q | --quiet | --silent)
 		exec >/dev/null 2>&1
@@ -178,8 +178,8 @@ for testing_cflags in '-I${.CURDIR}/' '-I'; do
 	    -e "4s| .*| $detected_ldflags|" $t/Makefile
 	if (cd $t; $MAKE) >/dev/null 2>&1; then
 		case "$SRCDIR" in
-		/*) found_cflags="-I. -I${SRCDIR}";;
-		*) found_cflags="-I. ${testing_cflags}${SRCDIR}";;
+		/*) found_cflags="-I. -I${SRCDIR}/src";;
+		*) found_cflags="-I. ${testing_cflags}${SRCDIR}/src";;
 		esac
 		break
 	fi
@@ -208,7 +208,7 @@ for testing_cflags in '-std=c99 -pedantic' '-std=c99' ''; do
 done
 case "$found_cflags" in
 '') echo " no flag is required";;
-'not found') echo " $found_cflags"
+'not found') echo " not found"
 	echo "ERROR: C99 is not supported" >&2
 	exit 1;;
 *) echo " \`$found_cflags'"
@@ -226,10 +226,8 @@ for testing_cflags in -Werror -Wall -Wimplicit-function-declaration \
     -Wmissing-declarations -Wshadow -Wpointer-arith -Wcast-qual; do
 	sed -i -e "3s| .*| $detected_cflags $testing_cflags|" \
 	    -e "4s| .*| $detected_ldflags|" $t/Makefile
-	if (cd $t; $MAKE) >/dev/null 2>&1; then
+	if (cd $t; touch test.c; $MAKE) >/dev/null 2>&1; then
 		found_cflags="$found_cflags $testing_cflags"
-	else
-		exit 1
 	fi
 done
 found_cflags="$(echo " $found_cflags" | sed 's/^ *//')"
@@ -245,10 +243,8 @@ found_cflags=''
 for testing_cflags in -pipe -O2; do
 	sed -i -e "3s| .*| $detected_cflags $testing_cflags|" \
 	    -e "4s| .*| $detected_ldflags|" $t/Makefile
-	if (cd $t; $MAKE) >/dev/null 2>&1; then
+	if (cd $t; touch test.c; $MAKE) >/dev/null 2>&1; then
 		found_cflags="$found_cflags $testing_cflags"
-	else
-		exit 1
 	fi
 done
 found_cflags="$(echo " $found_cflags" | sed 's/^ *//')"
@@ -275,8 +271,8 @@ for testing_ldflags in '' '-lc'; do
 done
 case "$found_ldflags" in
 '') echo " no flag is required";;
-'not found') echo " $found_ldflags"
-	echo "ERROR: standard library is not supported" >&2
+'not found') echo " not found"
+	echo "ERROR: \`pthread' library not found" >&2
 	exit 1;;
 *) echo " \`$found_ldflags'"
 	detected_ldflags="$detected_ldflags $found_ldflags";;
@@ -309,7 +305,7 @@ done
 case "$found_cflags" in
 '') ;;
 'not found') echo " $found_ldflags"
-	echo "ERROR: standard library is not supported" >&2
+	echo "ERROR: standard library not found" >&2
 	exit 1;;
 *) detected_cflags="$detected_cflags $found_cflags";;
 esac
@@ -346,39 +342,53 @@ case "$NO_CREATE" in
 	t='Makefile';;
 *) t='/dev/null';;
 esac
-cat <<EOM >$t
+sed s/X// <<EOM >$t
+XPROG=		ali.frad.ir
 EOM
 case "$make_search_style" in
 .*) case "$SRCDIR" in
 	/*) sed s/X// <<EOM >>$t;;
-X${make_search_style}:	${SRCDIR}
-X
+X${make_search_style}: ${SRCDIR}/src
+XRESDIR=	${SRCDIR}/res
+XSRCS!=		cd ${SRCDIR}/src && ls -d *.c
 EOM
 	*) sed s/X// <<EOM >>$t;;
-X${make_search_style}:	\${.CURDIR}/${SRCDIR}
-X
+X${make_search_style}: \${.CURDIR}/${SRCDIR}/src
+XRESDIR=	\${.CURDIR}/${SRCDIR}/res
+XSRCS!=		cd \${.CURDIR}/${SRCDIR}/src && ls -d *.c
 EOM
 	esac;;
 *) sed s/X// <<EOM >>$t;;
-X${make_search_style}=	${SRCDIR}
-X
+X${make_search_style}=		${SRCDIR}/src
+XRESDIR=	${SRCDIR}/res
+XSRCS!=		cd \${${make_search_style}} && ls -d *.c
+EOM
+esac
+case "$make_style" in
+gnu) sed s/X// <<EOM >>$t;;
+Xall: \${PROG}
 EOM
 esac
 sed s/X// <<EOM >>$t
-XPROG=	ali.frad.ir
-XSRCS=	fastcgi.c cgi.c www.c
-XSRCS+=	www_stat.c
-XSRCS+=	www_me.c www_me_edu.c www_me_work.c
-XSRCS+=	www_os.c
-XSRCS+=	www_games.c
-XSRCS+=	www_utils.c
+X
 XNOMAN=
+XDEBUG=		-g
 X
-XDEBUG=	-g
-X
+XSRCS+=		res.c
+Xres.h: res.c
+XCLEANFILES+=	res.h res.c res_parser.c res_parser.o res_parser
+XRESUPDATE!=	find \${RESDIR} -newer res.c 2>/dev/null | head -n 1
+Xres.c: res_parser \${RESUPDATE}
+X	./res_parser \${RESDIR}
+Xres_parser: res_parser.o
+X	\${CC} -o \$@ \$< \${LDFLAGS}
+XRESPARSER!=	ls -d \${RESDIR}/*.c
+Xres_parser.c: \${RESDIR}/parser.h \${RESPARSER}
+X	cat \${RESDIR}/parser.h \${RESPARSER} >res_parser.c
+X.depend \${SRCS:.c=.o}: fastcgi.h res.h
 EOM
 test "X$CC" = "X" || sed s/X// <<EOM >>$t
-XCC=	${CC}
+XCC=		${CC}
 EOM
 test "X$CFLAGS" = "X" || sed s/X// <<EOM >>$t
 XCFLAGS+=	${CFLAGS}
@@ -401,13 +411,21 @@ EOM
 case "$make_style" in
 bsd) echo '.include <bsd.prog.mk>' >>$t;;
 gnu) sed s/X// <<EOM >>$t;;
-XOBJS=	\${SRCS:.c=.o}
+XOBJS=		\${SRCS:.c=.o}
+XCLEANFILES+=	\${OBJS} \${PROG}
 X.SUFFIXES:
 X.SUFFIXES: .c .o
 X.c.o:
 X	\${CC} -c \${CFLAGS} \$<
 X\$PROG: \${OBJS}
 X	\${CC} -o \$@ \${OBJS} \${LDFLAGS}
+Xclean:
+X	rm -f \${CLEANFILES}
+Xinstall:
+X	install -d -o root -g bin -m 755 ${DESTDIR}${PREFIX}/bin
+X	install -o root -g bin -m 755 \${PROG} ${DESTDIR}${PREFIX}/bin
+Xuninstall:
+X	rm -f ${DESTDIR}${PREFIX}/bin
 EOM
 esac
 test "X$NO_CREATE" != "X" || echo " done"

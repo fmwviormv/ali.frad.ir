@@ -7,11 +7,6 @@ char last_path[PATH_MAX + 1];
 int last_count;
 const char *bin_prefix = "bin/";
 
-__dead void
-usage(void)
-{
-	extern char	*__progname;
-	fprintf(stderr, "usage: %s [ch] basepath\n",
 		__progname);
 	exit(1);
 }
@@ -221,15 +216,11 @@ print_file(int mode, int baselen, const char *prefix,
 int
 main(int argc, char **argv)
 {
-	int	 mode;
-	int	 baselen;
-
-	if (argc != 3 || strlen(argv[1]) != 1)
-		usage();
+	if (argc != 2)
+		errx(1, "use exactly 1 argument for `res' directory");
 	mode = *argv[1];
 	if (mode != 'c' && mode != 'h')
 		usage();
-	baselen = strlen(argv[2]);
 
 	// head
 	if (mode == 'h') {

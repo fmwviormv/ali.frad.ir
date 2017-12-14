@@ -42,7 +42,6 @@ struct res {
 
 void		 dirscan(char *, const char *, struct res *);
 void		 dirscan_res(const char *, const char *, struct res *);
-void		 dircat(char *, const char *);
 void		 dirup(char *);
 const char	*dirignore(const char *, const struct dirent *, int);
 void		 dirsort(struct res *);

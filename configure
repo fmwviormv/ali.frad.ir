@@ -386,7 +386,7 @@ X	./res_parser \${RESDIR}
 Xres_parser: res_parser.o
 X	\${CC} -o \$@ res_parser.o \${LDFLAGS}
 XRESPARSER!=	ls -d \${RESDIR}/*.c
-Xres_parser.c: \${RESDIR} \${RESDIR}/parser.h \${RESPARSER}
+Xres_parser.c: \${RESDIR}/parser.h \${RESPARSER}
 X	cat \${RESDIR}/parser.h \${RESPARSER} >\$@
 X.depend \${SRCS:.c=.o}: res.h \${HDRS}
 EOM

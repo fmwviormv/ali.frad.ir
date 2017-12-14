@@ -90,7 +90,7 @@ header_array(FILE *f, int indent, const struct res **res)
 		if (!isdigit(name[0]))
 			continue;
 
-		for (int j = 0; name[j]; ++j)
+		for (int j = 0; name[j] && name[j] != '.'; ++j)
 			index = index * 10 + (name[j] - '0');
 
 		if (index >= size)

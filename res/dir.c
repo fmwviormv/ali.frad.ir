@@ -23,7 +23,7 @@ dirscan(const char *path, const char *dir, struct res *res)
 	if (dirp != NULL) {
 		struct dirent	*dp;
 		while ((dp = readdir(dirp)) != NULL) {
-			const char	*ign = dirignore(res, dp, '.');
+			const char	*ign = dirignore(res, dp);
 
 			if (ign != NULL)
 				fprintf(stderr, "ignoring `%s/%s' %s\n",
@@ -44,7 +44,7 @@ dirscan(const char *path, const char *dir, struct res *res)
 		res->child = calloc(res->nchild, sizeof(*res->child));
 		ndir = 0;
 		while ((dp = readdir(dirp)) != NULL) {
-			if (dirignore(res, dp, 0))
+			if (dirignore(res, dp))
 				continue;
 			else if (dp->d_type != DT_DIR)
 				fprintf(stderr, "ignoring `%s/%s' %s\n",
@@ -64,7 +64,7 @@ dirscan(const char *path, const char *dir, struct res *res)
 		res->child = NULL;
 		nreg = 0;
 		while ((dp = readdir(dirp)) != NULL) {
-			if (dirignore(res, dp, '.'))
+			if (dirignore(res, dp))
 				continue;
 			else if (dp->d_type != DT_REG ||
 			    ++nreg > res->nchild)
@@ -115,7 +115,7 @@ dirscan_res(struct res *res, const char *name)
 }
 
 const char *
-dirignore(const struct res *res, const struct dirent *dp, int end_char)
+dirignore(const struct res *res, const struct dirent *dp)
 {
 	const char	*path = res->path;
 	const char	*message = NULL;
@@ -136,7 +136,7 @@ dirignore(const struct res *res, const struct dirent *dp, int end_char)
 			const int	 ch = dp->d_name[i];
 			index = index * 10 + (ch - '0');
 
-			if (ch == end_char)
+			if (ch == '.')
 				break;
 			else if (!isdigit(ch))
 				message = "due to invalid index";
@@ -147,7 +147,7 @@ dirignore(const struct res *res, const struct dirent *dp, int end_char)
 		for (int i = 0; i < (int)dp->d_namlen; ++i) {
 			const int	 ch = dp->d_name[i];
 
-			if (ch == end_char)
+			if (ch == '.')
 				break;
 			else if (ch != '_' && !isalnum(ch))
 				message = "due to invalid character";
@@ -162,26 +162,27 @@ dirignore(const struct res *res, const struct dirent *dp, int end_char)
 void
 dirsort(struct res *res)
 {
+	qsort(res->child, res->nchild, sizeof(*res->child), dircmp);
+
 	for (int i = 0; i < res->nchild; ++i)
 		dirsort(&res->child[i]);
-
-	qsort(res->child, res->nchild, sizeof(*res->child), dircmp);
 }
 
 int
 dircmp(const void *x, const void *y)
 {
-	const struct res	*px = x, *py = y;
+	const char	*px = ((const struct res *)x)->name;
+	const char	*py = ((const struct res *)y)->name;
 
-	if (isdigit(px->name[0]) && isdigit(py->name[0])) {
+	if (isdigit(px[0]) && isdigit(py[0])) {
 		int		 ix = 0, iy = 0;
-		for (int i = 0; px->name[i]; ++i)
-			ix = ix * 10 + (px->name[i] - '0');
-		for (int i = 0; py->name[i]; ++i)
-			iy = iy * 10 + (py->name[i] - '0');
+		for (int i = 0; px[i] && px[i] != '.'; ++i)
+			ix = ix * 10 + (px[i] - '0');
+		for (int i = 0; py[i] && py[i] != '.'; ++i)
+			iy = iy * 10 + (py[i] - '0');
 		return ix < iy ? -1 : ix > iy ? 1 : 0;
 	} else {
-		return strcmp(px->name, py->name);
+		return strcmp(px, py);
 	}
 }
 

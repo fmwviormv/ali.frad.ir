@@ -148,7 +148,7 @@ X.SUFFIXES:
 X.SUFFIXES: .c .o
 X.c.o:
 X	\${CC} -c \${CFLAGS} \$<
-X\$PROG: \${OBJS}
+X\${PROG}: \${OBJS}
 X	\${CC} -o \$@ \${OBJS} \${LDFLAGS}
 EOM
 esac
@@ -272,7 +272,7 @@ done
 case "$found_ldflags" in
 '') echo " no flag is required";;
 'not found') echo " not found"
-	echo "ERROR: \`pthread' library not found" >&2
+	echo "ERROR: standard library not found" >&2
 	exit 1;;
 *) echo " \`$found_ldflags'"
 	detected_ldflags="$detected_ldflags $found_ldflags";;
@@ -304,8 +304,8 @@ for i in '' -pthread -pthreads -lpthread -lpthreads pthread pthreads; do
 done
 case "$found_cflags" in
 '') ;;
-'not found') echo " $found_ldflags"
-	echo "ERROR: standard library not found" >&2
+'not found') echo " not found"
+	echo "ERROR: \`pthread' library not found" >&2
 	exit 1;;
 *) detected_cflags="$detected_cflags $found_cflags";;
 esac
@@ -349,20 +349,20 @@ case "$make_search_style" in
 .*) case "$SRCDIR" in
 	/*) sed s/X// <<EOM >>$t;;
 X${make_search_style}: ${SRCDIR}/src
-XRESDIR=	${SRCDIR}/res
+XRESDIR=		${SRCDIR}/res
 XSRCS!=		cd ${SRCDIR}/src && ls -d *.c
 XHDRS!=		cd ${SRCDIR}/src && ls -d *.h
 EOM
 	*) sed s/X// <<EOM >>$t;;
 X${make_search_style}: \${.CURDIR}/${SRCDIR}/src
-XRESDIR=	\${.CURDIR}/${SRCDIR}/res
+XRESDIR=		\${.CURDIR}/${SRCDIR}/res
 XSRCS!=		cd \${.CURDIR}/${SRCDIR}/src && ls -d *.c
 XHDRS!=		cd \${.CURDIR}/${SRCDIR}/src && ls -d *.h
 EOM
 	esac;;
 *) sed s/X// <<EOM >>$t;;
 X${make_search_style}=		${SRCDIR}/src
-XRESDIR=	${SRCDIR}/res
+XRESDIR=		${SRCDIR}/res
 XSRCS!=		cd \${${make_search_style}} && ls -d *.c
 XHDRS!=		cd \${${make_search_style}} && ls -d *.h
 EOM
@@ -384,10 +384,10 @@ XRESUPDATE!=	find \${RESDIR} -newer res.c 2>/dev/null | head -n 1
 Xres.c: res_parser \${RESUPDATE}
 X	./res_parser \${RESDIR}
 Xres_parser: res_parser.o
-X	\${CC} -o \$@ \$< \${LDFLAGS}
+X	\${CC} -o \$@ res_parser.o \${LDFLAGS}
 XRESPARSER!=	ls -d \${RESDIR}/*.c
 Xres_parser.c: \${RESDIR} \${RESDIR}/parser.h \${RESPARSER}
-X	cat \${RESDIR}/parser.h \${RESPARSER} >res_parser.c
+X	cat \${RESDIR}/parser.h \${RESPARSER} >\$@
 X.depend \${SRCS:.c=.o}: res.h \${HDRS}
 EOM
 test "X$CC" = "X" || sed s/X// <<EOM >>$t
@@ -424,7 +424,7 @@ X\${PROG}: \${OBJS}
 X	\${CC} -o \$@ \${OBJS} \${LDFLAGS}
 Xclean:
 X	rm -f \${CLEANFILES}
-Xinstall:
+Xinstall: \${PROG}
 X	install -d -o root -g bin -m 755 \${DESTDIR}\${PREFIX}/bin
 X	install -o root -g bin -m 755 \${PROG} \${DESTDIR}\${PREFIX}/bin
 Xuninstall:

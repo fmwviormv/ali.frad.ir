@@ -5,14 +5,12 @@
 int
 main(int argc, char **argv)
 {
-	static char	 path[PATH_MAX];
 	struct res	 res;
 
 	if (argc != 2)
 		errx(1, "use exactly 1 argument for `res' directory");
 
-	snprintf(path, sizeof(path), "%s", argv[1]);
-	dirscan(path, "", &res);
+	dirscan(argv[1], "", &res);
 	dirsort(&res);
 	header(&res, "res.c");
 

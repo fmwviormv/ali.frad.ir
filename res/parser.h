@@ -40,10 +40,9 @@ struct res {
 	struct file	 by_lang[LANG_COUNT];
 };
 
-void		 dirscan(char *, const char *, struct res *);
-void		 dirscan_res(const char *, const char *, struct res *);
-void		 dirup(char *);
-const char	*dirignore(const char *, const struct dirent *, int);
+void		 dirscan(const char *, const char *, struct res *);
+void		 dirscan_res(struct res *, const char *);
+const char	*dirignore(const struct res *, const struct dirent *, int);
 void		 dirsort(struct res *);
 int		 dircmp(const void *, const void *);
 int		 dirpcmp(const void *, const void *);

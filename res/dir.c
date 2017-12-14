@@ -7,28 +7,23 @@ enum {
 };
 
 void
-dirscan(char *parent_path, const char *dir, struct res *res)
+dirscan(const char *path, const char *dir, struct res *res)
 {
 	int		 ndir = 0;
 	int		 nreg = 0;
 	DIR		*dirp;
-	static char	 parent_copy[PATH_MAX];
-	static char	 path[PATH_MAX];
 
-	snprintf(parent_copy, sizeof(parent_copy), "%s", parent_path);
-
-	if (snprintf(path, sizeof(path), "%s%s%s", parent_copy,
-	    dir[0] != 0 ? "/" : "", dir) >= (int)sizeof(path))
+	if (snprintf(res->path, sizeof(res->path), "%s%s%s", path,
+	    dir[0] != 0 ? "/" : "", dir) >= (int)sizeof(res->path))
 		errx(1, "too long path `%s/%s'", path, dir);
 
 	snprintf(res->name, sizeof(res->name), "%s", dir);
-	snprintf(res->path, sizeof(res->path), "%s", path);
 	dirp = opendir(res->path);
 
 	if (dirp != NULL) {
 		struct dirent	*dp;
 		while ((dp = readdir(dirp)) != NULL) {
-			const char	*ign = dirignore(path, dp, '.');
+			const char	*ign = dirignore(res, dp, '.');
 
 			if (ign != NULL)
 				fprintf(stderr, "ignoring `%s/%s' %s\n",
@@ -49,7 +44,7 @@ dirscan(char *parent_path, const char *dir, struct res *res)
 		res->child = calloc(res->nchild, sizeof(*res->child));
 		ndir = 0;
 		while ((dp = readdir(dirp)) != NULL) {
-			if (dirignore(path, dp, 0))
+			if (dirignore(res, dp, 0))
 				continue;
 			else if (dp->d_type != DT_DIR)
 				fprintf(stderr, "ignoring `%s/%s' %s\n",
@@ -57,7 +52,7 @@ dirscan(char *parent_path, const char *dir, struct res *res)
 			else if (++ndir > res->nchild)
 				break;
 			else
-				dirscan(path, dp->d_name,
+				dirscan(res->path, dp->d_name,
 				    &res->child[ndir - 1]);
 		}
 
@@ -69,13 +64,13 @@ dirscan(char *parent_path, const char *dir, struct res *res)
 		res->child = NULL;
 		nreg = 0;
 		while ((dp = readdir(dirp)) != NULL) {
-			if (dirignore(path, dp, '.'))
+			if (dirignore(res, dp, '.'))
 				continue;
 			else if (dp->d_type != DT_REG ||
 			    ++nreg > res->nchild)
 				nreg = res->nchild + 1;
 			else
-				dirscan_res(path, dp->d_name, res);
+				dirscan_res(res, dp->d_name);
 		}
 
 		if (nreg != res->nchild)
@@ -85,14 +80,14 @@ dirscan(char *parent_path, const char *dir, struct res *res)
 	}
 
 	if (dirp) closedir(dirp);
-	dirup(path);
 }
 
 void
-dirscan_res(const char *path, const char *name, struct res *res)
+dirscan_res(struct res *res, const char *name)
 {
 	char		 lang[MAXRESNAME + 1];
 	char		*point;
+	const char	*path = res->path;
 	struct file	*file = NULL;
 
 	snprintf(lang, sizeof(lang), "%s", name);
@@ -119,19 +114,10 @@ dirscan_res(const char *path, const char *name, struct res *res)
 	}
 }
 
-void
-dirup(char *path)
-{
-	int		 len = strlen(path);
-
-	while (len > 0 && path[--len] != '/') ;
-
-	path[len] = 0;
-}
-
 const char *
-dirignore(const char *path, const struct dirent *dp, int end_char)
+dirignore(const struct res *res, const struct dirent *dp, int end_char)
 {
+	const char	*path = res->path;
 	const char	*message = NULL;
 
 	if (dp->d_namlen <= 0)

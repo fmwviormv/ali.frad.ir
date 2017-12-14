@@ -375,7 +375,7 @@ static void
 fastcgi_read(int fd, short event, void *arg)
 {
 	struct myconnect	*c = arg;
-	ssize_t		 	 n;
+	ssize_t			 n;
 	n = read(fd, c->in_buf + c->in_pos + c->in_len,
 	    FCGI_RECORD_SIZE - c->in_pos - c->in_len);
 	switch (n) {

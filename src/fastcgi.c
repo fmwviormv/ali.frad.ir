@@ -21,7 +21,7 @@
 #include <zlib.h>
 
 #include "fastcgi.h"
-#include "lang.h"
+#include "res.h"
 
 #define FCGI_ALIGN(n)		((7 + (n)) & -8)
 #define FCGI_ALIGN_DOWN(n)	((n) & -8)
@@ -296,7 +296,7 @@ fastcgi_accept(int fd, short events, void *arg)
 	c->param_len = 0;
 	c->content_len = 0;
 	c->compress = 0;
-	c->lang = 0;
+	c->lang = -1;
 	c->in_pos = 0;
 	c->in_len = 0;
 	c->out_pos = 0;
@@ -606,17 +606,7 @@ fastcgi_header(struct myconnect *c, const char *name, const char *value)
 #define check(s)	substr_eq(item, len, s)
 
 	if (strcmp(name, "PATH_INFO") == 0) {
-		const char *item = value;
-		int lang, len = 0;
-		if (*item && *item == '/')
-			++item;
-		while (item[len] && item[len] != '/')
-			++len;
-		for (lang = 0; lang < LANG_COUNT; ++lang)
-			if (check(lang_code[lang]))
-				break;
-		if (lang < LANG_COUNT)
-			c->lang = lang;
+		c->lang = res_lang(*value == '/' ? value + 1 : value);
 	} else if (strcmp(name, "CONTENT_LENGTH") == 0) {
 		const char *e;
 		int num = (int)strtonum(value, 0, BUF_PER_CONNECT, &e);
@@ -796,7 +786,7 @@ fastcgi_end_internal(struct myconnect *c, const char *log,
 	    "</head><body>"
 	    "<h3>ERROR</h3>",
 	    lang_dir[L],
-	    lang_code[L],
+	    res.lang[L].code.value.a,
 	    str_error[L]);
 	len = strlen(body);
 	va_start(ap, fmt);

@@ -4,23 +4,21 @@
 #include <string.h>
 
 #include "fastcgi.h"
-#include "lang.h"
 #include "res.h"
 
+const char	*cgi_mainpath(const struct mythread *);
 static void	 cgi_root(struct mythread *);
 
 void
 cgi_main(struct mythread *t, struct myconnect *c)
 {
-	const char	*path = t->path_info;
-	if (*path == '/')
-		++path;
-	if (!*path) {
+	const char	*path = cgi_mainpath(t);
+
+	if (!path)
 		cgi_root(t);
-	} else {
-		cgi_path(&path, lang_code[c->lang]);
+	else
 		www(t, path);
-	}
+
 	fastcgi_end(t, c);
 }
 
@@ -32,6 +30,28 @@ cgi_path(const char **path, const char *s)
 		return 0;
 	*path += len + 1;
 	return 1;
+}
+
+const char *
+cgi_mainpath(const struct mythread *t)
+{
+	const char	*path = t->path_info;
+	const char	*slash = strchr(path, '/');
+	const char	*res;
+
+	if (*path == '/')
+		++path;
+
+	if (!*path)
+		res = NULL;
+	else if (c->lang < 0)
+		res = path;
+	else if (slash)
+		res = slash + 1;
+	else
+		res = path + strlen(path);
+
+	return res;
 }
 
 static void

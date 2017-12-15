@@ -1,7 +1,6 @@
 #include <string.h>
 
 #include "fastcgi.h"
-#include "lang.h"
 #include "res.h"
 
 static void	 process(struct mythread *);

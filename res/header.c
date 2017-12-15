@@ -13,9 +13,44 @@ header(const struct res *res, const char *file)
 
 	fprintf(f, "#ifndef __RES_H__\n"
 	    "#define __RES_H__\n"
-	    "\n");
-	header_rec(f, 0, root_res);
-	fprintf(f, "res;\n"
+	    "\n"
+	    "#include <stdint.h>\n"
+	    "\n"
+	    "#ifdef __cplusplus\n"
+	    "extern \"C\" {\n"
+	    "#endif\n"
+	    "\n"
+	    "enum {\n"
+	    "\t" "LANG_EN = %d,\n"
+	    "\t" "LANG_FA = %d,\n"
+	    "\t" "LANG_COUNT = %d\n"
+	    "};\n", LANG_EN, LANG_FA, LANG_COUNT);
+	fprintf(f, "\n"
+	    "typedef struct {\n"
+	    "\t" "int" "\t\t " "type;\n"
+	    "\t" "union {\n"
+	    "\t\t" "const char" "\t*" "a;\n"
+	    "\t\t" "int64_t" "\t\t " "i;\n"
+	    "\t" "} value;\n"
+	    "} RES;\n"
+	    "\n"
+	    "#define ARES(X)" "\t\t" "( (RES) "
+	    "{ .type = 1, .value.a = (X) } )\n"
+	    "#define IRES(X, Z, F)" "\t" "( (RES) "
+	    "{ .type = 256 | (((Z) & 15) << 4) | \\\n"
+	    "\t\t\t    " "((F) & 15), .value.i = (X) } )\n"
+	    "\n"
+	    "int" "\t\t " "res_lang(const char *);\n"
+	    "int" "\t\t "
+	    "res_format(char *, size_t, const RES *, int);\n"
+	    "\n"
+	    "extern ");
+	header_rec(f, 0, root_res, "res");
+	fprintf(f, ";\n"
+	    "\n"
+	    "#ifdef __cplusplus\n"
+	    "}\n"
+	    "#endif\n"
 	    "\n"
 	    "#endif /* !__RES_H__ */\n");
 	fclose(f);
@@ -23,17 +58,21 @@ header(const struct res *res, const char *file)
 }
 
 void
-header_rec(FILE *f, int indent, const struct res **res)
+header_rec(FILE *f, int indent, const struct res **res,
+    const char *parent_name)
 {
 	const char	*name = res[0]->name;
 	const struct res **child = header_child(res);
+
+	if (!*name || isdigit(*name))
+		name = parent_name;
 
 	if (!child[0])
 		header_res(f, indent, name);
 	else if (!isdigit(child[0]->name[0]))
 		header_dir(f, indent, child, name);
 	else
-		header_array(f, indent, child);
+		header_array(f, indent, child, name);
 }
 
 void
@@ -60,7 +99,7 @@ header_dir(FILE *f, int indent, const struct res **res,
 		if (i != 0 && strcmp(name, res[i-1]->name) == 0)
 			continue;
 
-		header_rec(f, indent + 1, res + i);
+		header_rec(f, indent + 1, res + i, parent_name);
 		putc(';', f);
 		putc('\n', f);
 	}
@@ -72,7 +111,8 @@ header_dir(FILE *f, int indent, const struct res **res,
 }
 
 void
-header_array(FILE *f, int indent, const struct res **res)
+header_array(FILE *f, int indent, const struct res **res,
+    const char *parent_name)
 {
 	int		 size = 0;
 
@@ -90,7 +130,7 @@ header_array(FILE *f, int indent, const struct res **res)
 			size = index + 1;
 	}
 
-	header_rec(f, indent + 1, res);
+	header_rec(f, indent, res, parent_name);
 	fprintf(f, "[%d]", size);
 }
 

@@ -51,8 +51,9 @@ int		 filecmp(const char *, const char *);
 int		 filecpy(const char *, const char *);
 void		 header(const struct res *, const char *);
 void		 header_rec(FILE *, int, const struct res **);
-void		 header_res(FILE *, int, const struct res **);
-void		 header_dir(FILE *, int, const struct res **);
+void		 header_res(FILE *, int, const char *);
+void		 header_dir(FILE *, int, const struct res **,
+		    const char *);
 void		 header_array(FILE *, int, const struct res **);
 const struct res **header_child(const struct res **);
 void		 source(const struct res *, const char *);

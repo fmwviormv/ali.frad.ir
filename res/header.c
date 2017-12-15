@@ -25,36 +25,29 @@ header(const struct res *res, const char *file)
 void
 header_rec(FILE *f, int indent, const struct res **res)
 {
-	int		 has_child = 0;
-	int		 is_array = 0;
+	const char	*name = res[0]->name;
+	const struct res **child = header_child(res);
 
-	for (int i = 0; res[i]; ++i) {
-		if (res[i]->nchild)
-			has_child = 1;
-
-		if (isdigit(res[i]->name[0]))
-			is_array = 1;
-	}
-
-	if (!has_child)
-		header_res(f, indent, res);
-	else if (!is_array)
-		header_dir(f, indent, res);
+	if (!child[0])
+		header_res(f, indent, name);
+	else if (!isdigit(child[0]->name[0]))
+		header_dir(f, indent, child, name);
 	else
-		header_array(f, indent, res);
+		header_array(f, indent, child);
 }
 
 void
-header_res(FILE *f, int indent, const struct res **res)
+header_res(FILE *f, int indent, const char *name)
 {
 	for (int i = 0; i < indent; ++i)
 		putc('\t', f);
 
-	fprintf(f, "RES %s", res[0]->name);
+	fprintf(f, "RES %s", name);
 }
 
 void
-header_dir(FILE *f, int indent, const struct res **res)
+header_dir(FILE *f, int indent, const struct res **res,
+    const char *parent_name)
 {
 	for (int i = 0; i < indent; ++i)
 		putc('\t', f);
@@ -67,7 +60,7 @@ header_dir(FILE *f, int indent, const struct res **res)
 		if (i != 0 && strcmp(name, res[i-1]->name) == 0)
 			continue;
 
-		header_rec(f, indent + 1, header_child(res + i));
+		header_rec(f, indent + 1, res + i);
 		putc(';', f);
 		putc('\n', f);
 	}
@@ -75,7 +68,7 @@ header_dir(FILE *f, int indent, const struct res **res)
 	for (int i = 0; i < indent; ++i)
 		putc('\t', f);
 
-	fprintf(f, "} %s", res[0]->name);
+	fprintf(f, "} %s", parent_name);
 }
 
 void
@@ -97,7 +90,7 @@ header_array(FILE *f, int indent, const struct res **res)
 			size = index + 1;
 	}
 
-	header_rec(f, indent + 1, header_child(res));
+	header_rec(f, indent + 1, res);
 	fprintf(f, "[%d]", size);
 }
 

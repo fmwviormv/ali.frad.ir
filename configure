@@ -63,7 +63,7 @@ EOM
 	esac
 done
 
-t=CONFIGDIR
+t=./CONFIGDIR
 mkdir -p $t/1 || (echo "ERROR: could not create directory" >&2; exit 1)
 n='-n'
 c='\c'

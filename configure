@@ -221,7 +221,7 @@ found_cflags=''
 for testing_cflags in -Werror -Wall -Wimplicit-function-declaration \
     -Wno-uninitialized -Wno-pointer-sign \
     -Wno-address-of-packed-member -Wno-constant-conversion \
-    -Wframe-larger-than=2047 \
+    -Wframe-larger-than=8191 \
     -Wstrict-prototypes -Wmissing-prototypes -Wsign-compare \
     -Wmissing-declarations -Wshadow -Wpointer-arith -Wcast-qual; do
 	sed -i -e "3s| .*| $detected_cflags $testing_cflags|" \

@@ -27,24 +27,15 @@ www(struct mythread *t, const char *path)
 static void
 process(struct mythread *t)
 {
-	int		 L = t->lang;
-	cgi_html_begin(t, str__s_s_personal_website[L],
-	    str__s_s_personal_website[L],
-	    str_ali_farzanrad[L],
-	    str_ali_farzanrad[L]);
-	fastcgi_addbody(t, "<style>%s", res_css_common);
-	fastcgi_trim_end(t);
-	fastcgi_addbody(t, "</style>");
-	cgi_html_head(t, str__s_s_personal_website[L],
-	    str_ali_farzanrad[L]);
-	fastcgi_addbody(t, "<p>%s%s</p><ul>",
-	    str_content_list[L],
-	    lang_colon[L]);
+	const RES	 header[] = {
+		res.http.header.www.html,
+		RES_NULL
+	},		 content[] = {
+		res.html.www.index,
+		RES_NULL
+	};
 
-	fastcgi_addbody(t, "<li><a href=\"me/\">%s</a></li>",
-	    str_about_me[L]);
-
-	fastcgi_addbody(t, "</ul>");
-	cgi_html_tail(t);
+	fastcgi_addhead(t, header);
+	fastcgi_addbody(t, content);
 }
 

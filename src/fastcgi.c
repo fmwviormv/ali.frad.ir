@@ -41,40 +41,41 @@
 
 #define FCGI_REQUEST_COMPLETE	0
 
-#define FCGI_READ_INT(d)	(*d >> 7 == 0? *d++: \
-    ((*d++ & 127) << 24) + (*d++ << 16) + (*d++ << 8) + *d++)
-
 struct fcgi_end_request_body {
 	uint32_t	app_status;
 	uint8_t		protocol_status;
 	uint8_t		reserved[3];
 }__packed;
 
-static __dead void usage(void);
-static int	 atoi_or_die(const char *, int, int);
-static int	 fastcgi_listen(const char *, struct passwd *, int);
-static void	 fastcgi_accept(int, short, void *);
-static void	 fastcgi_resume(int, short, void *);
-static void	 fastcgi_sig_handler(int, short, void *);
-static void	 fastcgi_close(struct myconnect *);
-static void	 fastcgi_read(int, short, void *);
-static void	 fastcgi_write(int, short, void *);
-static void	 fastcgi_timeout(int, short, void *);
-static void	*fastcgi_worker(void *);
-static void	 fastcgi_addjob(struct myconnect *);
-static void	 fastcgi_header(struct myconnect *,
+__dead void	 usage(void);
+int		 atoi_or_die(const char *, int, int);
+int		 fastcgi_listen(const char *, struct passwd *, int);
+void		 fastcgi_accept(int, short, void *);
+void		 fastcgi_resume(int, short, void *);
+void		 fastcgi_sig_handler(int, short, void *);
+void		 fastcgi_close(struct myconnect *);
+void		 fastcgi_read(int, short, void *);
+void		 fastcgi_read_params(struct myconnect *,
+		    const char *, int);
+void		 fastcgi_read_stdin(struct myconnect *,
+		    const char *, int);
+void		 fastcgi_write(int, short, void *);
+void		 fastcgi_timeout(int, short, void *);
+void		*fastcgi_worker(void *);
+void		 fastcgi_addjob(struct myconnect *);
+void		 fastcgi_header(struct myconnect *,
 		    const char *, const char *);
-static void	 fastcgi_end_internal(struct myconnect *, const char *,
-		    const char *, const char *, ...);
-static void	 fastcgi_end_bigreq(struct myconnect *, const char *);
-static void	 fastcgi_end_bigres(struct myconnect *, const char *);
-static int	 fastcgi_add_fcgi_record(struct myconnect *, int,
+void		 fastcgi_end_internal(struct myconnect *, const char *,
+		    const RES *, const RES *);
+void		 fastcgi_end_bigreq(struct myconnect *);
+void		 fastcgi_end_bigres(struct myconnect *, const char *);
+int		 fastcgi_add_fcgi_record(struct myconnect *, int,
 		    const void *, int);
-static int	 fastcgi_add_fcgi_multirecord(struct myconnect *, int,
+int		 fastcgi_add_fcgi_multirecord(struct myconnect *, int,
 		    const char *, int, const char *, int);
-static int	 substr_eq(const char *, int, const char *);
+int		 substr_eq(const char *, int, const char *);
 
-static __dead void
+__dead void
 usage(void)
 {
 	extern char *__progname;
@@ -83,15 +84,18 @@ usage(void)
 	exit(1);
 }
 
-static int
+int
 atoi_or_die(const char *s, int min, int max)
 {
 	const char	*msg;
-	int		 res;
-	res = (int)strtonum(s, min, max, &msg);
+	int		 result;
+
+	result = (int)strtonum(s, min, max, &msg);
+
 	if (msg)
 		errx(1, "your number is %s: %s", msg, optarg);
-	return res;
+
+	return result;
 }
 
 int
@@ -234,7 +238,7 @@ main(int argc, char **argv)
 	return 0;
 }
 
-static int
+int
 fastcgi_listen(const char *path, struct passwd *pw, int max_queue)
 {
 	struct sockaddr_un	 sun;
@@ -258,7 +262,7 @@ fastcgi_listen(const char *path, struct passwd *pw, int max_queue)
 	return fd;
 }
 
-static void
+void
 fastcgi_accept(int fd, short events, void *arg)
 {
 	struct myglobal		*g = arg;
@@ -297,7 +301,6 @@ fastcgi_accept(int fd, short events, void *arg)
 	c->content_len = 0;
 	c->compress = 0;
 	c->lang = -1;
-	c->in_pos = 0;
 	c->in_len = 0;
 	c->out_pos = 0;
 	c->out_len = 0;
@@ -309,7 +312,7 @@ fastcgi_accept(int fd, short events, void *arg)
 	event_add(&c->ev_timeout, &timeout);
 }
 
-static void
+void
 fastcgi_resume(int fd, short events, void *arg)
 {
 	struct timeval	 one_sec = { 1 , 0 };
@@ -326,7 +329,7 @@ fastcgi_resume(int fd, short events, void *arg)
 	g->connect_counter = 0;
 }
 
-static void
+void
 fastcgi_sig_handler(int sig, short event, void *arg)
 {
 	struct myglobal	*g = arg;
@@ -352,7 +355,7 @@ fastcgi_sig_handler(int sig, short event, void *arg)
 	}
 }
 
-static void
+void
 fastcgi_close(struct myconnect *c)
 {
 	struct myglobal	*g = c->g;
@@ -371,13 +374,16 @@ fastcgi_close(struct myconnect *c)
 	--g->num_connect;
 }
 
-static void
+void
 fastcgi_read(int fd, short event, void *arg)
 {
 	struct myconnect	*c = arg;
+	int			 in_pos = 0;
 	ssize_t			 n;
-	n = read(fd, c->in_buf + c->in_pos + c->in_len,
-	    FCGI_RECORD_SIZE - c->in_pos - c->in_len);
+
+	n = read(fd, c->in_buf + c->in_len,
+	    FCGI_RECORD_SIZE - c->in_len);
+
 	switch (n) {
 	case -1:
 		if (errno == EINTR || errno == EAGAIN)
@@ -388,30 +394,36 @@ fastcgi_read(int fd, short event, void *arg)
 	default:
 		break;
 	}
+
 	c->in_len += n;
+
 	while (c->in_len >= (int)sizeof(struct fcgi_record_header)) {
 		struct fcgi_record_header *h;
 		int		 data_len, total_len;
 		char		*data;
-		char		*buf = c->out_buf + c->out_len;
-		int		 buf_len = c->out_len;
 
 		if ((h = (struct fcgi_record_header *)
-		    (c->in_buf + c->in_pos))->version != 1)
+		    (c->in_buf + in_pos))->version != 1)
 			errx(1, "unknown version: %d", h->version);
+
 		data_len = ntohs(h->content_len);
 		total_len = sizeof(*h) + data_len + h->padding_len;
+
 		if (c->in_len < total_len)
 			break;
+
 		if (c->fcgi_id < 0)
 			c->fcgi_id = ntohs(h->id);
 		else if (c->fcgi_id != ntohs(h->id))
 			errx(1, "fastcgi id changed");
-		data = c->in_buf + c->in_pos + sizeof(*h);
-		c->in_pos += total_len;
+
+		data = c->in_buf + in_pos + sizeof(*h);
+		in_pos += total_len;
 		c->in_len -= total_len;
+
 		if (c->status != STATUS_STARTED)
 			continue;
+
 		switch (h->type) {
 		case FCGI_BEGIN_REQUEST:
 			c->param_len = 0;
@@ -420,62 +432,80 @@ fastcgi_read(int fd, short event, void *arg)
 		case FCGI_PARAMS:
 			if (data_len == 0) {
 				c->param_len = c->out_len;
+
 				if (!c->content_len)
 					fastcgi_addjob(c);
-				continue;
-			}
-			if (buf_len + data_len >= BUF_PER_CONNECT) {
-				fastcgi_end_bigreq(c, NULL);
+			} else if (c->out_len + data_len >=
+			    LENGTHOF(c->out_buf)) {
+				fastcgi_end_bigreq(c);
 				c->status = STATUS_FINISHED;
 				event_add(&c->ev_write, NULL);
-				continue;
-			}
-			while (data_len > 0) {
-				uint8_t *d = (uint8_t *)data;
-				int name = FCGI_READ_INT(d);
-				int val = FCGI_READ_INT(d);
-				data_len -= (char *)d - data;
-				data = (char *)d;
-				if (data_len < (int64_t)name + val)
-					break;
-				data_len -= name + val;
-
-				memcpy(buf, data, name);
-				data += name;
-				buf[name] = 0;
-				buf += name = strlen(buf) + 1;
-
-				memcpy(buf, data, val);
-				data += val;
-				buf[val] = 0;
-				buf += val = strlen(buf) + 1;
-
-				c->out_len += name += val;
-				fastcgi_header(c, buf-name, buf-val);
+			} else {
+				fastcgi_read_params(c, data, data_len);
 			}
 			break;
 		case FCGI_STDIN:
-			if (buf_len + data_len < BUF_PER_CONNECT) {
-				memcpy(buf, data, data_len);
-				if ((c->out_len += data_len) >=
-				    c->param_len + c->content_len)
-					fastcgi_addjob(c);
-			} else {
-				fastcgi_end_bigreq(c, NULL);
-				c->status = STATUS_FINISHED;
-				event_add(&c->ev_write, NULL);
-			}
+			fastcgi_read_stdin(c, data, data_len);
 			break;
 		default:
 			break;
 		}
 	}
+
 	if (c->in_len > 0)
-		bcopy(c->in_buf + c->in_pos, c->in_buf, c->in_len);
-	c->in_pos = 0;
+		bcopy(c->in_buf + in_pos, c->in_buf, c->in_len);
 }
 
-static void
+void
+fastcgi_read_params(struct myconnect *c, const char *data, int len)
+{
+	/* assumes that c->out_buf has at least len bytes free */
+	const uint8_t	*d = (const uint8_t *)data;
+	const uint8_t	*end = d + len;
+	char		*buf = c->out_buf + c->out_len;
+
+	while (d < end) {
+		const int	 name_len = *d < 128 ? *d : 0x7fffffff
+				    & ntohl(*(const uint32_t *)d);
+		d += *d < 128 ? 1 : 4;
+		const int	 value_len = *d < 128 ? *d : 0x7fffffff
+				    & ntohl(*(const uint32_t *)d);
+		d += *d < 128 ? 1 : 4;
+
+		if (d + name_len + value_len >= end)
+			break;
+
+		char		*const name = buf;
+		char		*const value = buf + name_len + 1;
+
+		buf = value + value_len + 1;
+		memcpy(name, d, name_len);
+		memcpy(value, d, value_len);
+		name[name_len] = 0;
+		value[value_len] = 0;
+		fastcgi_header(c, name, value);
+	}
+
+	c->out_len = buf - c->out_buf;
+}
+
+void
+fastcgi_read_stdin(struct myconnect *c, const char *data, int len)
+{
+	if (c->out_len + len >= LENGTHOF(c->out_buf)) {
+		fastcgi_end_bigreq(c);
+		c->status = STATUS_FINISHED;
+		event_add(&c->ev_write, NULL);
+	} else {
+		memcpy(c->out_buf + c->out_len, data, len);
+		c->out_len = len;
+
+		if (c->out_len >= c->param_len + c->content_len)
+			fastcgi_addjob(c);
+	}
+}
+
+void
 fastcgi_write(int fd, short event, void *arg)
 {
 	struct myconnect	*c = arg;
@@ -494,14 +524,14 @@ fastcgi_write(int fd, short event, void *arg)
 		fastcgi_close(c);
 }
 
-static void
+void
 fastcgi_timeout(int fd, short event, void *arg)
 {
 	struct myconnect	*c = arg;
 	fastcgi_close(c);
 }
 
-static void *
+void *
 fastcgi_worker(void *arg)
 {
 	struct mythread		*t = arg;
@@ -565,7 +595,7 @@ fastcgi_worker(void *arg)
 	return NULL;
 }
 
-static void
+void
 fastcgi_addjob(struct myconnect *c)
 {
 	struct myglobal	*g = c->g;
@@ -597,7 +627,7 @@ fastcgi_param(struct mythread *t, const char *key)
 	return NULL;
 }
 
-static void
+void
 fastcgi_header(struct myconnect *c, const char *name, const char *value)
 {
 #ifdef check
@@ -608,8 +638,11 @@ fastcgi_header(struct myconnect *c, const char *name, const char *value)
 	if (strcmp(name, "PATH_INFO") == 0) {
 		c->lang = res_lang(*value == '/' ? value + 1 : value);
 	} else if (strcmp(name, "CONTENT_LENGTH") == 0) {
-		const char *e;
-		int num = (int)strtonum(value, 0, BUF_PER_CONNECT, &e);
+		const char	*e;
+		int		 num;
+
+		num = (int)strtonum(value, 0, LENGTHOF(c->out_buf), &e);
+
 		if (!e)
 			c->content_len = num;
 	} else if (strcasecmp(name, "HTTP_ACCEPT_ENCODING") == 0) {
@@ -636,73 +669,72 @@ fastcgi_header(struct myconnect *c, const char *name, const char *value)
 }
 
 int
-fastcgi_addhead(struct mythread *t, const char *fmt, ...)
+fastcgi_addhead(struct mythread *t, const RES *a)
 {
-	va_list		 ap;
-	int		 len;
+	const int	 len = LENGTHOF(t->head) - t->head_len;
+	const int	 lang = LANG_EN;
+	int		 result;
+
+	if (len <= 1)
+		t->head_len = -1;
+
 	if (t->head_len < 0)
-		return 0;
-	len = sizeof(t->head) - t->head_len;
-	if (len <= 1) {
-		t->head_len = -1;
-		return 0;
-	}
-	va_start(ap, fmt);
-	len = vsnprintf(t->head + t->head_len, len, fmt, ap);
-	va_end(ap);
-	if (len > 0 && (t->head_len += len) >= (int)sizeof(t->head))
-		t->head_len = -1;
+		return t->head_len;
+
+	result = res_format(t->head + t->head_len, len, a, lang);
+
+	if (result < 0)
+		t->head_len = result;
+	else
+		t->head_len += len;
+
 	return len;
 }
 
 int
-fastcgi_addbody(struct mythread *t, const char *fmt, ...)
+fastcgi_addbody(struct mythread *t, const RES *a)
 {
-	va_list		 ap;
-	int		 len;
+	const int	 len = LENGTHOF(t->body) - t->body_len;
+	const int	 lang = t->lang >= 0 ? t->lang : LANG_EN;
+	int		 result;
+
+	if (len <= 1)
+		t->body_len = -1;
+
 	if (t->body_len < 0)
-		return 0;
-	len = sizeof(t->body) - t->body_len;
-	if (len <= 1) {
-		t->body_len = -1;
-		return 0;
-	}
-	va_start(ap, fmt);
-	len = vsnprintf(t->body + t->body_len, len, fmt, ap);
-	va_end(ap);
-	if (len > 0 && (t->body_len += len) >= (int)sizeof(t->body))
-		t->body_len = -1;
+		return t->body_len;
+
+	result = res_format(t->body + t->body_len, len, a, lang);
+
+	if (result < 0)
+		t->body_len = result;
+	else
+		t->body_len += result;
+
 	return len;
 }
 
 int
-fastcgi_addlog(struct mythread *t, const char *fmt, ...)
+fastcgi_addlog(struct mythread *t, const RES *a)
 {
-	va_list		 ap;
-	int		 len;
+	const int	 len = LENGTHOF(t->log) - t->log_len;
+	const int	 lang = LANG_EN;
+	int		 result;
+
+	if (len <= 1)
+		t->log_len = -1;
+
 	if (t->log_len < 0)
-		return 0;
-	len = sizeof(t->log) - t->log_len;
-	if (len <= 1) {
-		t->log_len = -1;
-		return 0;
-	}
-	va_start(ap, fmt);
-	len = vsnprintf(t->log + t->log_len, len, fmt, ap);
-	va_end(ap);
-	if (len > 0 && (t->log_len += len) >= (int)sizeof(t->log))
-		t->log_len = -1;
-	return len;
-}
+		return t->log_len;
 
-void
-fastcgi_trim_end(struct mythread *t)
-{
-	if (t->body_len < 0)
-		return;
-	while (t->body_len > 0 && isspace(t->body[t->body_len - 1]))
-		--t->body_len;
-	t->body[t->body_len] = 0;
+	result = res_format(t->log + t->log_len, len, a, lang);
+
+	if (result < 0)
+		t->log_len = result;
+	else
+		t->log_len += len;
+
+	return len;
 }
 
 void
@@ -710,12 +742,15 @@ fastcgi_end(struct mythread *t, struct myconnect *c)
 {
 	if (c->status != STATUS_WORKING)
 		return;
+
 	if (t->log_len < 0)
-		t->log[t->log_len = sizeof(t->log) - 1] = 0;
+		t->log[t->log_len = LENGTHOF(t->log) - 1] = 0;
+
 	if (t->head_len < 0 || t->body_len < 0) {
 		fastcgi_end_bigres(c, t->log);
 		return;
 	}
+
 	c->compress = t->body_len <= 0 ? 0 :
 	    (c->compress & COMPRESS_GZIP) ? COMPRESS_GZIP :
 	    /* (c->compress & COMPRESS_DEFLATE) ? COMPRESS_DEFLATE : */
@@ -726,109 +761,109 @@ fastcgi_end(struct mythread *t, struct myconnect *c)
 		t->gzip.avail_in = t->body_len;
 		t->gzip.next_out = c->out_buf;
 		t->gzip.avail_out = sizeof(c->out_buf);
+
 		if (deflate(&t->gzip, Z_FINISH) == Z_STREAM_END)
 			memcpy(t->body, c->out_buf, t->body_len =
 			    (char *)t->gzip.next_out - c->out_buf);
 		else
 			c->compress = 0;
+
 		deflateReset(&t->gzip);
 		break;
 	default:
 		c->compress = 0;
 		break;
 	}
+
 	if (t->body_len < 0) {
 		fastcgi_end_bigres(c, t->log);
 		return;
 	}
-	if (t->body_len > 0)
-		fastcgi_addhead(t, "Content-Length: %d\n",
-		    t->body_len);
-	if (c->compress)
-		fastcgi_addhead(t, "Content-Encoding: %s\n",
-		    c->compress == COMPRESS_GZIP ? "gzip" :
-		    c->compress == COMPRESS_DEFLATE ? "deflate" :
-		    "unknown");
-	fastcgi_addhead(t, "Pragma: no-cache\n"
-	    "Cache-control: no-store\n"
-	    "X-Frame-Options: SAMEORIGIN\n"
-	    "Strict-Transport-Security: max-age=15768000\n"
-	    "\n");
+
+	RES		 header[10];
+	int		 nheader = 0;
+
+	if (t->body_len > 0) {
+		header[nheader++] = res.http.header.content.length;
+		header[nheader++] = IRES(t->body_len, 0, 0);
+	}
+
+	if (c->compress == COMPRESS_GZIP)
+		header[nheader++] = res.http.header.encoding.gzip;
+	else if (c->compress == COMPRESS_DEFLATE)
+		header[nheader++] = res.http.header.encoding.deflate;
+
+	header[nheader++] = res.http.header.common;
+	header[nheader++] = res.http.header.end;
+	header[nheader++] = RES_NULL;
+	fastcgi_addhead(t, header);
+
 	if (t->head_len < 0 || t->body_len < 0) {
 		fastcgi_end_bigres(c, t->log);
 		return;
 	}
+
 	fastcgi_add_fcgi_multirecord(c, FCGI_STDERR, t->log, -1, 0, 0);
 	fastcgi_add_fcgi_multirecord(c, FCGI_STDOUT,
 	    t->head, t->head_len, t->body, t->body_len);
 	fastcgi_add_fcgi_record(c, FCGI_END_REQUEST, NULL, 0);
 }
 
-static void
+void
 fastcgi_end_internal(struct myconnect *c, const char *log,
-    const char *adding_log, const char *fmt, ...)
+    const RES *adding_log, const RES *body)
 {
-	int		 len, L = c->lang;
-	char		 header[4096], body[4096];
-	va_list		 ap;
+	const int	 lang = c->lang >= 0 ? c->lang : LANG_EN;
+	char		 buf[8192], header_buf[1024];
 
 	c->out_len = 0;
+	res_format(buf, LENGTHOF(buf), adding_log, LANG_EN);
 	fastcgi_add_fcgi_multirecord(c, FCGI_STDERR,
-	    log, -1, adding_log, -1);
-	snprintf(body, sizeof(body),
-	    "<!DOCTYPE html>\n"
-	    "<html dir=\"%s\" lang=\"%s\">"
-	    "<head>"
-	    "<meta charset=\"utf-8\">"
-	    "<meta http-equiv=\"x-ua-compatible\" content=\"ie=edge\">"
-	    "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
-	    "<title>%s</title>"
-	    "</head><body>"
-	    "<h3>ERROR</h3>",
-	    lang_dir[L],
-	    res.lang[L].code.value.a,
-	    str_error[L]);
-	len = strlen(body);
-	va_start(ap, fmt);
-	vsnprintf(body + len, sizeof(body) - len, fmt, ap);
-	va_end(ap);
-	len = strlen(body);
-	snprintf(body + len, sizeof(body) - len, "</body></html>");
-	snprintf(header, sizeof(header),
-	    "Status: %d\n"
-	    "Content-Type: " MIME_HTML "\n"
-	    "Content-Length: %d\n"
-	    "\n",
-	    500, (int)strlen(body));
+	    log, -1, buf, -1);
+	res_format(buf, LENGTHOF(buf), body, lang);
+
+	const RES	 header[] = {
+		res.http.header.cgi.internal,
+		res.http.header.content.length,
+		IRES(strlen(buf), 0, 0),
+		RES_NULL
+	};
+
+	res_format(header_buf, LENGTHOF(header_buf), header, LANG_EN);
 	fastcgi_add_fcgi_multirecord(c, FCGI_STDOUT,
-	    header, -1, body, -1);
+	    header_buf, -1, buf, -1);
 	fastcgi_add_fcgi_record(c, FCGI_END_REQUEST, NULL, 0);
 }
 
-static void
-fastcgi_end_bigreq(struct myconnect *c, const char *log)
+void
+fastcgi_end_bigreq(struct myconnect *c)
 {
-	int		 L = c->lang;
-	fastcgi_end_internal(c, log, "bigreq\n",
-	    "<h4>%s%s</h4>"
-	    "<h4>%s%s</h4>",
-	    str_your_request_is_too_big[L], lang_period[L],
-	    str_please_compress_uploading_files_and_try_again[L],
-	    lang_period[L]);
+	const RES	 log[] = {
+		res.log.bigreq,
+		RES_NULL
+	},		 body[] = {
+		res.html.cgi.bigreq,
+		RES_NULL
+	};
+
+	fastcgi_end_internal(c, NULL, log, body);
 }
 
-static void
-fastcgi_end_bigres(struct myconnect *c, const char *log)
+void
+fastcgi_end_bigres(struct myconnect *c, const char *old_log)
 {
-	int		 L = c->lang;
-	fastcgi_end_internal(c, log, "bigres\n",
-	    "<h4>%s%s %s%s</h4>",
-	    str_your_request_completed[L], lang_comma[L],
-	    str_but_there_is_a_problem_in_displaying_results[L],
-	    lang_period[L]);
+	const RES	 log[] = {
+		res.log.bigres,
+		RES_NULL
+	},		 body[] = {
+		res.html.cgi.bigres,
+		RES_NULL
+	};
+
+	fastcgi_end_internal(c, old_log, log, body);
 }
 
-static int
+int
 fastcgi_add_fcgi_record(struct myconnect *c, int type,
     const void *content, int content_len)
 {
@@ -873,11 +908,11 @@ fastcgi_add_fcgi_record(struct myconnect *c, int type,
 	return content_len;
 }
 
-static int
+int
 fastcgi_add_fcgi_multirecord(struct myconnect *c, int type,
     const char *content1, int len1, const char *content2, int len2)
 {
-	int		 t, res = 0;
+	int		 t, result = 0;
 	const int	 hsize = (int)sizeof(struct fcgi_record_header);
 	const int	 bestlen = (1 << 16) - hsize;
 	if (len1 < 0)
@@ -887,8 +922,8 @@ fastcgi_add_fcgi_multirecord(struct myconnect *c, int type,
 	while (len1 >= bestlen) {
 		t = fastcgi_add_fcgi_record(c, type, content1, bestlen);
 		if (t <= 0)
-			return res;
-		res += t;
+			return result;
+		result += t;
 		content1 += t;
 		len1 -= t;
 	}
@@ -897,31 +932,31 @@ fastcgi_add_fcgi_multirecord(struct myconnect *c, int type,
 		t = fastcgi_add_fcgi_record(c, type, NULL,
 		    len1 + len2 < bestlen ? len1 + len2 : bestlen);
 		if (t <= 0)
-			return res;
-		res += t;
+			return result;
+		result += t;
 		if (t < len1) {
 			memcpy(p, content1, t);
-			return res;
+			return result;
 		}
 		memcpy(p, content1, len1);
 		p += len1;
 		t -= len1;
 		if (t > 0)
 			memcpy(p, content2, t);
-		return res;
+		return result;
 	}
 	while (len2 > 0) {
 		t = fastcgi_add_fcgi_record(c, type, content2, bestlen);
 		if (t <= 0)
-			return res;
-		res += t;
+			return result;
+		result += t;
 		content2 += t;
 		len2 -= t;
 	}
-	return res;
+	return result;
 }
 
-static int
+int
 substr_eq(const char *s1, int len1, const char *s2)
 {
 	int		 i;

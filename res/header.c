@@ -34,6 +34,7 @@ header(const struct res *res, const char *file)
 	    "\t" "} value;\n"
 	    "} RES;\n"
 	    "\n"
+	    "#define RES_NULL" "\t" "( (RES) { .type = 0 } )\n"
 	    "#define ARES(X)" "\t\t" "( (RES) "
 	    "{ .type = 1, .value.a = (X) } )\n"
 	    "#define IRES(X, Z, F)" "\t" "( (RES) "
@@ -42,7 +43,7 @@ header(const struct res *res, const char *file)
 	    "\n"
 	    "int" "\t\t " "res_lang(const char *);\n"
 	    "int" "\t\t "
-	    "res_format(char *, size_t, const RES *, int);\n"
+	    "res_format(char *, int, const RES *, int);\n"
 	    "\n"
 	    "extern ");
 	header_rec(f, 0, root_res, "res");

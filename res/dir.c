@@ -23,11 +23,8 @@ dirscan(const char *path, const char *dir, struct res *res)
 	if (dirp != NULL) {
 		struct dirent	*dp;
 		while ((dp = readdir(dirp)) != NULL) {
-			const char	*ign = dirignore(res, dp);
-
-			if (ign != NULL)
-				fprintf(stderr, "ignoring `%s/%s' %s\n",
-				    path, dp->d_name, ign);
+			if (dirignore(stderr, res->path, dp))
+				continue;
 			else if (dp->d_type == DT_DIR)
 				++ndir;
 			else if (dp->d_type == DT_REG)
@@ -44,7 +41,7 @@ dirscan(const char *path, const char *dir, struct res *res)
 		res->child = calloc(res->nchild, sizeof(*res->child));
 		ndir = 0;
 		while ((dp = readdir(dirp)) != NULL) {
-			if (dirignore(res, dp))
+			if (dirignore(NULL, res->path, dp))
 				continue;
 			else if (dp->d_type != DT_DIR)
 				fprintf(stderr, "ignoring `%s/%s' %s\n",
@@ -64,7 +61,7 @@ dirscan(const char *path, const char *dir, struct res *res)
 		res->child = NULL;
 		nreg = 0;
 		while ((dp = readdir(dirp)) != NULL) {
-			if (dirignore(res, dp))
+			if (dirignore(NULL, res->path, dp))
 				continue;
 			else if (dp->d_type != DT_REG ||
 			    ++nreg > res->nchild)
@@ -100,7 +97,7 @@ dirscan_res(struct res *res, const char *name)
 		file = &res->default_file;
 
 	for (int i = 0; i < LANG_COUNT; ++i)
-	if (strcmp(lang, lang_code[i]))
+	if (strcmp(lang, lang_code[i]) == 0)
 		file = &res->by_lang[i];
 
 	if (!file)
@@ -108,21 +105,22 @@ dirscan_res(struct res *res, const char *name)
 	else if (file->name[0])
 		errx(1, "%s: multiple files `%s' and `%s'",
 		    path, file->name, name);
-	else {
+	else
 		snprintf(file->name, sizeof(file->name), "%s", name);
-		file->length = filelen(path, name);
-	}
 }
 
-const char *
-dirignore(const struct res *res, const struct dirent *dp)
+int
+dirignore(FILE *f, const char *path, const struct dirent *dp)
 {
-	const char	*path = res->path;
+	const char	*name = dp->d_name;
 	const char	*message = NULL;
+	int		 ignore = 0;
 
 	if (dp->d_namlen <= 0)
 		message = "due to invalid name";
-	else if (dp->d_name[0] == '.')
+	else if (strcmp(name, ".") == 0 || strcmp(name, "..") == 0)
+		ignore = 1;
+	else if (name[0] == '.')
 		message = "hidden file";
 	else if (dp->d_namlen > MAXRESNAME)
 		message = "due to long name";
@@ -130,10 +128,10 @@ dirignore(const struct res *res, const struct dirent *dp)
 		message = "due to long path";
 	else if (dp->d_type != DT_DIR && dp->d_type != DT_REG)
 		message = "due to file type";
-	else if (isdigit(dp->d_name[0])) {
+	else if (isdigit(name[0])) {
 		long long	 index = 0;
 		for (int i = 0; i < (int)dp->d_namlen; ++i) {
-			const int	 ch = dp->d_name[i];
+			const int	 ch = name[i];
 			index = index * 10 + (ch - '0');
 
 			if (ch == '.')
@@ -145,7 +143,7 @@ dirignore(const struct res *res, const struct dirent *dp)
 		}
 	} else {
 		for (int i = 0; i < (int)dp->d_namlen; ++i) {
-			const int	 ch = dp->d_name[i];
+			const int	 ch = name[i];
 
 			if (ch == '.')
 				break;
@@ -156,7 +154,15 @@ dirignore(const struct res *res, const struct dirent *dp)
 		}
 	}
 
-	return message;
+	if (message) {
+		ignore = 1;
+
+		if (f)
+			fprintf(f, "ignoring `%s/%s' %s\n",
+			    path, name, message);
+	}
+
+	return ignore;
 }
 
 void

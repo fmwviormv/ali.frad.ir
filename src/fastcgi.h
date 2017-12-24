@@ -6,6 +6,8 @@
 #include <pthread.h>
 #include <zlib.h>
 
+#include "res.h"
+
 #define SOCKET_OWNER		"www"
 #define DEFAULT_USER		"www"
 #define DEFAULT_SOCKET		"/var/www/run/ali.frad.ir"
@@ -34,9 +36,7 @@
 
 #define MAGIC_PNG		(0x89504e47)
 
-#define MIME_HTML		"text/html"
-#define MIME_PNG		"image/png"
-#define MIME_JPEG		"image/jpeg"
+#define LENGTHOF(a)		((int)(sizeof((a)) / sizeof(*(a))))
 
 struct fcgi_record_header {
 	uint8_t		 version;
@@ -135,21 +135,13 @@ struct myglobal {
 #define cgi_image(t, r)		cgi_image2(t, r, sizeof(r))
 
 const char	*fastcgi_param(struct mythread *, const char *);
-int		 fastcgi_addhead(struct mythread *, const char *, ...);
-int		 fastcgi_addbody(struct mythread *, const char *, ...);
-int		 fastcgi_addlog(struct mythread *, const char *, ...);
-void		 fastcgi_trim_end(struct mythread *);
+int		 fastcgi_addhead(struct mythread *, const RES *);
+int		 fastcgi_addbody(struct mythread *, const RES *);
+int		 fastcgi_addlog(struct mythread *, const RES *);
 void		 fastcgi_end(struct mythread *, struct myconnect *);
 void		 cgi_main(struct mythread *, struct myconnect *);
 int		 cgi_path(const char **, const char *);
-void		 cgi_html_begin(struct mythread *, const char *,
-		    const char *, ...);
-void		 cgi_html_head(struct mythread *, const char *, ...);
-void		 cgi_html_tail(struct mythread *);
 void		 cgi_notfound(struct mythread *);
-void		 cgi_binary2(struct mythread *, const void *, int);
-void		 cgi_base64_2(struct mythread *, const void *, int);
-void		 cgi_image2(struct mythread *, const void *, int);
 void		 www(struct mythread *, const char *);
 void		 www_stat(struct mythread *, const char *);
 void		 www_me(struct mythread *, const char *);

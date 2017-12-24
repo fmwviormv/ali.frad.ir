@@ -1,1 +1,29 @@
-@media print{.noprint{display:none;}}*{margin:0;}a{text-decoration:none;}
+@media print {
+	.noprint, .header {
+		display: none;
+	}
+}
+
+* {
+	margin: 0;
+}
+
+a {
+	text-decoration: none;
+}
+
+.header {
+	margin: 0 0 10pt 0;
+	padding: 10pt 10pt;
+	overflow: hidden;
+	background: linear-gradient(to {{/css/end}}, #0f8, #0df);
+}
+
+.header a {
+	font-size: 20pt;
+}
+
+.header .langbar {
+	font-size: 10pt;
+	float: {{/css/end}};
+}

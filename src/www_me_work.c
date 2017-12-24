@@ -17,6 +17,7 @@ www_me_work(struct mythread *t, const char *path)
 static void
 process(struct mythread *t)
 {
+	/*
 	int		 L = t->lang;
 	cgi_html_begin(t, "%s", "%s",
 	    str_my_works[L], str_my_works[L]);
@@ -25,5 +26,6 @@ process(struct mythread *t)
 	fastcgi_addbody(t, "</style>");
 	cgi_html_head(t, "%s", str_my_works[L]);
 	cgi_html_tail(t);
+	*/
 }
 

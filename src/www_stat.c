@@ -17,6 +17,7 @@ www_stat(struct mythread *t, const char *path)
 static void
 process(struct mythread *t)
 {
+	/*
 	int		 L = t->lang;
 	cgi_html_begin(t, "%s", "%s",
 	    str_server_status[L],
@@ -40,5 +41,6 @@ process(struct mythread *t)
 	    t->g->num_connect_per_min);
 
 	cgi_html_tail(t);
+	*/
 }
 

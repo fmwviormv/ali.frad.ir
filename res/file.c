@@ -10,7 +10,7 @@ int
 filelen(const char *path, const char *name)
 {
 	int		 len = strlen(path);
-	static char	 fullpath[2 * (PATH_MAX)];
+	char		 fullpath[2 * (PATH_MAX)];
 	FILE		*file;
 	long		 filelen;
 
@@ -40,7 +40,7 @@ filecmp(const char *file1, const char *file2)
 
 	while (res == 0) {
 		size_t		 n;
-		static unsigned char b1[BLOCK_SIZE], b2[BLOCK_SIZE];
+		unsigned char	 b1[BLOCK_SIZE], b2[BLOCK_SIZE];
 		n = fread(&b1, sizeof(*b1), BLOCK_SIZE, f1);
 
 		if (fread(&b2, sizeof(*b2), BLOCK_SIZE, f2) != n) {
@@ -70,7 +70,7 @@ filecpy(const char *src, const char *dest)
 
 	while (res == 0) {
 		size_t		 n;
-		static unsigned char b[BLOCK_SIZE];
+		unsigned char	 b[BLOCK_SIZE];
 		n = fread(&b, sizeof(*b), BLOCK_SIZE, f1);
 
 		if (n <= 0)

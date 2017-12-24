@@ -42,7 +42,7 @@ struct res {
 
 void		 dirscan(const char *, const char *, struct res *);
 void		 dirscan_res(struct res *, const char *);
-const char	*dirignore(const struct res *, const struct dirent *);
+int		 dirignore(FILE *, const char *, const struct dirent *);
 void		 dirsort(struct res *);
 int		 dircmp(const void *, const void *);
 int		 dirpcmp(const void *, const void *);
@@ -62,5 +62,6 @@ void		 source(const struct res *, const char *);
 void		 quote(FILE *, const void *, int);
 void		 quote_line(FILE *, const unsigned char *, int);
 void		 quote_end(FILE *);
+void		 res_lang(FILE *);
 
 #endif /* !__RES_PARSER_H__ */

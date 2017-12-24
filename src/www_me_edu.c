@@ -17,6 +17,7 @@ www_me_edu(struct mythread *t, const char *path)
 static void
 process(struct mythread *t)
 {
+	/*
 	int		 L = t->lang;
 	cgi_html_begin(t, "%s", "%s",
 	    str_my_educations[L], str_my_educations[L]);
@@ -76,5 +77,6 @@ process(struct mythread *t)
 	fastcgi_addbody(t, "%s</li></ul><br />", lang_period[L]);
 
 	cgi_html_tail(t);
+	*/
 }
 
